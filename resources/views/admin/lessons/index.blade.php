@@ -83,6 +83,12 @@ LESSONS
             </div>
           </div>
         </div>
+
+        @for ($lessons as $lesson)
+          <x-admin.lesson-card
+            
+        @endfor
+
         {{-- <div class="col-sm-6 col-lg-4">
           <div class="card p-2 h-100 shadow-none border">
             <div class="rounded-2 text-center mb-4">
