@@ -9,4 +9,14 @@ class Lesson extends Model
 {
     //
     use HasFactory;
+
+     protected $fillable = [
+        'title',
+        'image_path',
+        'difficulty',
+        'description',
+        'time',
+        'content',
+        'is_active'
+    ];
 }

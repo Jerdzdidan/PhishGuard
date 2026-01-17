@@ -39,5 +39,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     })->name('home');
 
     // LESSONS
-    Route::get('lessons', [LessonController::class, 'index'])->name('lessons.index');
+
+    Route::prefix('lessons')->name('lessons.')->group(function () {
+        Route::get('', [LessonController::class, 'index'])->name('index');
+
+        Route::get('edit/{id}', [LessonController::class, 'edit'])->name('edit');
+        Route::put('update/{id}', [LessonController::class, 'update'])->name('update');
+    });
 });

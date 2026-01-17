@@ -11,9 +11,17 @@ class LessonCard extends Component
     /**
      * Create a new component instance.
      */
-    public function __construct()
+    public $title, $route, $img, $description, $time, $difficulty, $status;
+
+    public function __construct($title, $route = '', $img = '', $description = '', $time = '', $difficulty = '', $status)
     {
-        //
+        $this->title = $title;
+        $this->route = $route;
+        $this->img = $img;
+        $this->description = $description;
+        $this->time = $time;
+        $this->difficulty = $difficulty;
+        $this->status = $status;
     }
 
     /**

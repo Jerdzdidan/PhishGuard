@@ -38,8 +38,8 @@ LESSONS
   <div class="card mb-6">
     <div class="card-header d-flex flex-wrap justify-content-between gap-4">
       <div class="card-title mb-0 me-1">
-        <h5 class="mb-0">Courses</h5>
-        <p class="mb-0">Total of 6 course</p>
+        <h5 class="mb-0">Lessons</h5>
+        <p class="mb-0">Total of {{ $total }} {{ $total > 1 ? 'lessons' : 'lesson' }}</p>
       </div>
       {{-- <div class="d-flex justify-content-md-end align-items-sm-center align-items-start column-gap-6 flex-sm-row flex-column row-gap-4">
         <select class="form-select">
@@ -59,35 +59,18 @@ LESSONS
     </div>
     <div class="card-body">
       <div class="row gy-6 mb-6">
-        <div class="col-sm-6 col-lg-4">
-          <div class="card p-2 h-100 shadow-none border">
-            <div class="rounded-2 text-center mb-4">
-              <a href="app-academy-course-details.html"><img class="img-fluid" src="{{ asset('img/lessons/default.png') }}" alt="tutor image 1" /></a>
-            </div>
-            <div class="card-body p-4 pt-2">
-              <div class="d-flex justify-content-between align-items-center mb-4">
-                <span class="badge bg-label-primary">Easy</span>
-                {{-- <p class="d-flex align-items-center justify-content-center fw-medium gap-1 mb-0">
-                  4.4 <span class="text-warning"><i class="icon-base bx bxs-star me-1 mb-1_5"></i></span><span class="fw-normal">(1.23k)</span>
-                </p> --}}
-              </div>
-              <a href="app-academy-course-details.html" class="h5">Introduction to Cybersecurity</a>
-              <p class="mt-1">An introductory lesson for cybersecurity fundamentals.</p>
-              <p class="d-flex align-items-center mb-1"><i class="icon-base bx bx-time-five me-1"></i>15 minutes</p>
-              <div class="progress mb-4" style="height: 8px">
-                <div class="progress-bar" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-              <div class="d-flex flex-column flex-md-row gap-4 text-nowrap flex-wrap flex-md-nowrap flex-lg-wrap flex-xxl-nowrap">
-                <a class="w-100 btn btn-primary d-flex align-items-center" href="app-academy-course-details.html"> <i class="icon-base bx bx-rotate-right icon-sm align-middle scaleX-n1-rtl me-2"></i><span>Start</span> </a>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        @for ($lessons as $lesson)
+        @foreach ($lessons as $lesson)
           <x-admin.lesson-card
-            
-        @endfor
+              :title="$lesson->title"
+              :img="$lesson->img"
+              :description="$lesson->description"
+              :difficulty="$lesson->difficulty"
+              :time="$lesson->time"
+              :status="$lesson->is_active"
+              route="{{ route('admin.lessons.edit', Crypt::encryptString($lesson->id)) }}"
+          />
+        @endforeach
 
         {{-- <div class="col-sm-6 col-lg-4">
           <div class="card p-2 h-100 shadow-none border">
