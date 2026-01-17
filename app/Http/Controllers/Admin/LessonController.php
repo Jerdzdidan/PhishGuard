@@ -32,6 +32,26 @@ class LessonController extends Controller
         return view('admin.lessons.edit', compact('lesson'));
     }
 
+    public function create(Request $request)
+    {
+        $validated = $request->validate([
+            'title'     => 'required|string|max:255',
+            'description'    => 'required|string',
+            'time' => 'required|integer',
+            'difficulty' => 'required|exists:departments,id',
+        ]);
+
+        Lesson::create([
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'time' => $validated['time'],
+            'difficulty' => $validated['difficulty'],
+            'content' => 'Change content here',
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function update(Request $request, $id)
     {
         // Decrypt the ID

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('description');
             $table->integer('time');
             $table->text('content');
-            $table->boolean('is_active');
+            $table->boolean('is_active')->default(false);
             $table->timestamps();
         });
     }

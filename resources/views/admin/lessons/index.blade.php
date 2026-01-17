@@ -23,8 +23,7 @@ LESSONS
       </div>
       <div class="app-academy-md-50 card-body d-flex align-items-md-center flex-column text-md-center mb-6 py-6">
         <span class="card-title mb-4 px-md-12 h4">
-          Lessons management - create, update, and delete <br />
-          lessons. <span class="text-primary text-nowrap">All in one place</span>.
+          Lessons management - create, update, and delete lessons. <span class="text-primary text-nowrap">All in one place</span>.
         </span>
         <p class="mb-4">Create intriguing, well-structured lessons that transform users into competent cybersecurity experts.</p>
 
@@ -36,10 +35,20 @@ LESSONS
   </div>
 
   <div class="card mb-6">
-    <div class="card-header d-flex flex-wrap justify-content-between gap-4">
+    <div class="card-header">
       <div class="card-title mb-0 me-1">
-        <h5 class="mb-0">Lessons</h5>
-        <p class="mb-0">Total of {{ $total }} {{ $total > 1 ? 'lessons' : 'lesson' }}</p>
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h5 class="mb-0">Lessons</h5>
+            <p class="mb-0">Total of {{ $total }} {{ $total > 1 ? 'lessons' : 'lesson' }}</p>
+          </div>
+          <div class="col-md-4 text-end">
+              <button class="btn btn-primary" data-bs-toggle="offcanvas" id="btn-add" data-bs-target="#add-or-update-modal">
+                <i class="fa-solid fa-plus fa-1x me-2"></i>
+                Add New Lesson
+              </button>
+          </div>
+        </div>
       </div>
       {{-- <div class="d-flex justify-content-md-end align-items-sm-center align-items-start column-gap-6 flex-sm-row flex-column row-gap-4">
         <select class="form-select">
@@ -232,9 +241,20 @@ LESSONS
     </div>
   </div>
 
+  @include('admin.lessons.form')
+
 </div>
 @endsection
 
 @section('scripts')
 <script src="{{ asset('themes/sneat/assets/js/app-academy-course.js') }}"></script>
+
+<script>
+  $('#difficulty').select2({
+      minimumResultsForSearch: -1,
+      placeholder: 'Difficulty'
+  });
+
+  
+</script>
 @endsection
