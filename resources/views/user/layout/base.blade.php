@@ -71,7 +71,7 @@
   <div class="container-xxl">
 
   <div class="navbar-brand app-brand demo d-none d-xl-flex py-0 me-4">
-    <a href="{{ route('landing.index') }}" class="app-brand-link">
+    <a href="{{ route('user.home') }}" class="app-brand-link">
       <span class="">
         <img src="{{ asset('img/landing/logo.png') }}" alt="" style="width: 40px; height: auto; max-width: 100%;">
       </span>

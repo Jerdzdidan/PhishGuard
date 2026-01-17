@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\User\CourseAppController;
+use App\Http\Controllers\User\UserLessonController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -29,11 +30,16 @@ Route::prefix('auth')->name('auth.')->group(function () {
 
 // MAIN USER ROUTES
 Route::prefix('')->middleware('auth')->group(function () {
-    Route::get('home', [CourseAppController::class, 'index'])->name('user.home');
+    Route::get('home', [UserLessonController::class, 'index'])->name('user.home');
+
+    Route::prefix('lessons')->name('lessons.')->group(function () {
+        Route::get('show/{id}', [UserLessonController::class, 'show'])->name('show');
+    });
+        
 });
 
 // ADMIN ROUTES
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::prefix('admin')->middleware('auth')->name('admin.')->group(function () {
     Route::get('home', function () {
         return view('admin.home.index');
     })->name('home');
