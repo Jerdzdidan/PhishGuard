@@ -29,9 +29,9 @@ LESSONS
           <div class="card academy-content shadow-none border">
             <div class="p-2">
                 @if ($lesson->image_path)
-                    <img class="w-100" src="{{ $lesson->image_path }}" />
+                    <img class="w-100" src="{{ asset('storage/' . $lesson->image_path) }}" id="lessonImage" style="height: 560px; object-fit: cover;" />
                 @else
-                    <img class="w-100" src="{{ asset('img/lessons/default.png') }}" />
+                    <img class="w-100" src="{{ asset('img/lessons/default.png') }}" id="lessonImage" style="height: 560px; object-fit: cover;" />
                 @endif
             </div>
             <div class="card-body pt-4">
@@ -56,17 +56,20 @@ LESSONS
             <div class="accordion-body py-4">
               <div class="mb-4">
                 <label for="defaultCheck1" class="form-check-label ms-4">
-                  <span class="mb-0 h6">1. Lesson</span>
+                  <span class="mb-0 h6 text-primary">1. Lesson</span>
                   <small class="text-body d-block">content</small>
                 </label>
               </div>
-              <hr>
-              <div class="mb-4">
-                <label for="defaultCheck2" class="form-check-label ms-4">
-                  <span class="mb-0 h6">2. Quiz</span>
-                  <small class="text-body d-block">assessment</small>
-                </label>
-              </div>
+              @if ($lesson->quiz && $lesson->quiz->is_active)
+                <hr>
+                <div class="mb-4">
+
+                  <label for="defaultCheck2" class="form-check-label ms-4">
+                    <span class="mb-0 h6">2. Quiz</span>
+                    <small class="text-body d-block">assessment</small>
+                  </label>
+                </div>
+              @endif
             </div>
           </div>
         </div>

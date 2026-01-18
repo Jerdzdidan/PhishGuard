@@ -177,9 +177,9 @@ body:not(.edit-mode-active) .inline-edit-field {
                         <!-- Image -->
                         <div class="p-2 position-relative image-container inline-edit-field" data-field="image">
                             @if ($lesson->image_path)
-                                <img class="w-100" src="{{ asset('storage/' . $lesson->image_path) }}" id="lessonImage" style="height: 400px; object-fit: cover;" />
+                                <img class="w-100" src="{{ asset('storage/' . $lesson->image_path) }}" id="lessonImage" style="height: 560px; object-fit: cover;" />
                             @else
-                                <img class="w-100" src="{{ asset('img/lessons/default.png') }}" id="lessonImage" style="height: 400px; object-fit: cover;" />
+                                <img class="w-100" src="{{ asset('img/lessons/default.png') }}" id="lessonImage" style="height: 560px; object-fit: cover;" />
                             @endif
                             <div class="image-upload-overlay">
                                 <div class="text-center text-white">
@@ -224,10 +224,9 @@ body:not(.edit-mode-active) .inline-edit-field {
                             <span class="d-flex flex-column">
                                 <span class="h5 mb-0">Lesson Content</span>
                                 <!-- Time Duration -->
-                                <span class="inline-edit-field text-body fw-normal" data-field="time">
+                                <span class="text-body fw-normal" data-field="time">
                                     <span class="view-mode">
                                         {{ $lesson->time }} min
-                                        <i class="ri-pencil-line ri-xs edit-icon ms-1"></i>
                                     </span>
                                     <span class="edit-mode d-none">
                                         <input type="number" 
@@ -246,17 +245,19 @@ body:not(.edit-mode-active) .inline-edit-field {
                     <div id="chapterOne" class="accordion-collapse collapse show" data-bs-parent="#courseContent">
                         <div class="accordion-body py-4">
                             <div class="mb-4">
-                                <label class="form-check-label ms-4">
-                                    <span class="mb-0 h6">1. Lesson</span>
-                                    <small class="text-body d-block">content</small>
+                                <label class="ms-4">
+                                    <span class="mb-0 h6 text-primary">1. Lesson</span>
+                                    <small class="text-body d-block text-primary">content</small>
                                 </label>
                             </div>
                             <hr>
                             <div class="mb-4">
-                                <label class="form-check-label ms-4">
-                                    <span class="mb-0 h6">2. Quiz</span>
-                                    <small class="text-body d-block">assessment</small>
-                                </label>
+                                <a href="{{ route('admin.lessons.quiz.show', Crypt::encryptString($lesson->id)) }}">
+                                    <label class="form-check-label ms-4">
+                                        <span class="mb-0 h6">2. Quiz</span>
+                                        <small class="text-body d-block">assessment</small>
+                                    </label>
+                                </a>
                             </div>
                             
                             <!-- Active Status (Only show in edit mode) -->

@@ -12,9 +12,8 @@ class UserLessonController extends Controller
     //
     public function index()
     {
-        $lessons = Lesson::get();
-
-        $total = Lesson::count();
+        $lessons = Lesson::where('is_active', true)->paginate(6); 
+        $total = Lesson::where('is_active', true)->count();
 
         return view('user.home.index', [
             'lessons' => $lessons,
@@ -26,7 +25,7 @@ class UserLessonController extends Controller
     {
         $lessonId = Crypt::decryptString($id);
 
-        $lesson = Lesson::findOrFail($lessonId);
+        $lesson = Lesson::with('quiz')->findOrFail($lessonId);
 
         return view('user.home.lesson.show', compact('lesson'));
     }

@@ -36,7 +36,7 @@ return new class extends Migration
             $table->char('option_letter', 1); // A, B, C, D
             $table->text('answer_text');
             $table->boolean('is_correct')->default(false);
-            $table->text('explanation');
+            $table->text('explanation')->nullable();
             $table->timestamps();
         });
 

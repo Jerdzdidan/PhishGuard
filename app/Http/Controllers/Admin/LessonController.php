@@ -13,8 +13,7 @@ class LessonController extends Controller
     //
     public function index()
     {
-        $lessons = Lesson::get();
-
+        $lessons = Lesson::paginate(6); 
         $total = Lesson::count();
 
         return view('admin.lessons.index', [
@@ -32,13 +31,13 @@ class LessonController extends Controller
         return view('admin.lessons.edit', compact('lesson'));
     }
 
-    public function create(Request $request)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'title'     => 'required|string|max:255',
             'description'    => 'required|string',
             'time' => 'required|integer',
-            'difficulty' => 'required|exists:departments,id',
+            'difficulty' => 'required|string',
         ]);
 
         Lesson::create([

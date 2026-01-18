@@ -19,4 +19,9 @@ class Lesson extends Model
         'content',
         'is_active'
     ];
+
+    public function quiz()
+    {
+        return $this->hasOne(Quiz::class);
+    }
 }

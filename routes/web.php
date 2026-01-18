@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Admin\LessonController;
+use App\Http\Controllers\Admin\QuizController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\User\CourseAppController;
 use App\Http\Controllers\User\UserLessonController;
+use App\Http\Controllers\User\UserQuizController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -34,8 +36,11 @@ Route::prefix('')->middleware('auth')->group(function () {
 
     Route::prefix('lessons')->name('lessons.')->group(function () {
         Route::get('show/{id}', [UserLessonController::class, 'show'])->name('show');
+
+        Route::prefix('quiz')->name('quiz.')->group(function() {
+            Route::get('{id}', [UserQuizController::class, 'show'])->name('show');
+        });
     });
-        
 });
 
 // ADMIN ROUTES
@@ -45,11 +50,25 @@ Route::prefix('admin')->middleware('auth')->name('admin.')->group(function () {
     })->name('home');
 
     // LESSONS
-
     Route::prefix('lessons')->name('lessons.')->group(function () {
         Route::get('', [LessonController::class, 'index'])->name('index');
 
+        Route::post('store', [LessonController::class, 'store'])->name('store');
+
         Route::get('edit/{id}', [LessonController::class, 'edit'])->name('edit');
         Route::put('update/{id}', [LessonController::class, 'update'])->name('update');
+
+        Route::prefix('quiz')->name('quiz.')->group(function () {
+            Route::get('{id}', [QuizController::class, 'show'])->name('show');
+            Route::post('store/{id}', [QuizController::class, 'store'])->name('store');
+        });
+
+        Route::prefix('question')->name('question.')->group(function () {
+            Route::post('store/{id}', [QuizController::class, 'storeQuestion'])->name('store');
+            Route::get('edit/{id}', [QuizController::class, 'editQuestion'])->name('edit');
+            Route::put('update/{id}', [QuizController::class, 'updateQuestion'])->name('update');
+            Route::delete('destroy/{id}', [QuizController::class, 'destroyQuestion'])->name('destroy');
+            Route::post('re-order', [QuizController::class, 'reorderQuestions'])->name('reorder');
+        });
     });
 });

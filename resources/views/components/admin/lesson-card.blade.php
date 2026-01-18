@@ -3,9 +3,9 @@
     <div class="rounded-2 text-center mb-4 position-relative">
         <a href="{{ $route }}">
             @if ($img)
-                <img class="img-fluid" src="{{ $img }}" />
+                <img class="img-fluid w-100" style="height: 290px; object-fit: cover;" src="{{ asset('storage/' . $img) }}" />
             @else
-                <img class="img-fluid" src="{{ asset('img/lessons/default.png') }}" />
+                <img class="img-fluid w-100" style="height: 290px; object-fit: cover;" src="{{ asset('img/lessons/default.png') }}" />
             @endif
         </a>
         <span class="badge {{ $status ? 'bg-success' : 'bg-danger' }} position-absolute fw-bold top-0 end-0 m-2">
