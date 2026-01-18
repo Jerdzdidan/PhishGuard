@@ -55,7 +55,7 @@ LESSONS
           <div id="chapterOne" class="accordion-collapse collapse show" data-bs-parent="#courseContent">
             <div class="accordion-body py-4">
               <div class="mb-4">
-                <label for="defaultCheck1" class="form-check-label ms-4">
+                <label for="defaultCheck1" class="ms-4">
                   <span class="mb-0 h6 text-primary">1. Lesson</span>
                   <small class="text-body d-block">content</small>
                 </label>
@@ -63,17 +63,17 @@ LESSONS
               @if ($lesson->quiz && $lesson->quiz->is_active)
                 <hr>
                 <div class="mb-4">
-
-                  <label for="defaultCheck2" class="form-check-label ms-4">
-                    <span class="mb-0 h6">2. Quiz</span>
-                    <small class="text-body d-block">assessment</small>
-                  </label>
+                  <a href="{{ route('lessons.quiz.show', Crypt::encryptString($lesson->id)) }}">
+                    <label for="defaultCheck2" class="form-check-label ms-4">
+                      <span class="mb-0 h6">2. Quiz</span>
+                      <small class="text-body d-block">assessment</small>
+                    </label>
+                  </a>
                 </div>
               @endif
             </div>
           </div>
         </div>
-        
       </div>
     </div>
 @endsection
