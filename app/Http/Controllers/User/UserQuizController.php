@@ -28,6 +28,26 @@ class UserQuizController extends Controller
                 ->with('error', 'Quiz not available for this lesson.');
         }
 
+        // Check if this is a retake (session flag set)
+        if (session()->has('allow_retake')) {
+            session()->forget('allow_retake');
+            // Allow them to take quiz again
+        } else {
+            // Check if user has already attempted this quiz (get latest attempt only)
+            $latestAttempt = UserQuizAttempt::where('user_id', Auth::id())
+                ->where('quiz_id', $quiz->id)
+                ->latest()
+                ->first();
+
+            if ($latestAttempt && $latestAttempt->answers_data !== null) {
+                // Redirect to results page if valid attempt exists
+                return redirect()->route('lessons.quiz.results', [
+                    'id' => $id,
+                    'attempt' => Crypt::encryptString($latestAttempt->id)
+                ]);
+            }
+        }
+
         // Get all questions with answers
         $questions = Question::where('quiz_id', $quiz->id)
             ->with('answers')
@@ -40,61 +60,6 @@ class UserQuizController extends Controller
         }
 
         return view('user.home.lesson.quiz', compact('lesson', 'quiz', 'questions'));
-    }
-
-    public function checkAttempt($id)
-    {
-        $lessonId = Crypt::decryptString($id);
-        $lesson = Lesson::findOrFail($lessonId);
-        
-        $quiz = Quiz::where('lesson_id', $lesson->id)
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        // Get the latest attempt for this user and quiz
-        $attempt = UserQuizAttempt::where('user_id', Auth::id())
-            ->where('quiz_id', $quiz->id)
-            ->latest()
-            ->first();
-
-        if (!$attempt) {
-            return response()->json(['has_attempt' => false]);
-        }
-
-        // Get questions with correct answers
-        $questions = Question::where('quiz_id', $quiz->id)
-            ->with(['answers' => function($query) {
-                $query->orderBy('option_letter');
-            }])
-            ->orderBy('order')
-            ->get();
-
-        // Reconstruct results from the attempt
-        // Note: We need to store user answers in the database to reconstruct this
-        // For now, we'll just mark questions as answered
-        $results = [];
-        
-        // Since we don't have individual answer records, we'll need to add that
-        // For now, return basic info
-        foreach ($questions as $question) {
-            $correctAnswer = $question->answers->firstWhere('is_correct', true);
-            
-            $results[] = [
-                'question_id' => $question->id,
-                'question_text' => $question->question_text,
-                'user_answer' => null, // We'll need to store this
-                'correct_answer' => $correctAnswer->option_letter,
-                'is_correct' => false, // We'll need to calculate this
-                'points' => $question->points,
-                'earned_points' => 0, // We'll need to calculate this
-            ];
-        }
-
-        return response()->json([
-            'has_attempt' => true,
-            'attempt' => $attempt,
-            'results' => $results
-        ]);
     }
 
     public function submit(Request $request, $id)
@@ -116,9 +81,8 @@ class UserQuizController extends Controller
         try {
             // Get all questions with correct answers
             $questions = Question::where('quiz_id', $quiz->id)
-                ->with(['answers' => function($query) {
-                    $query->where('is_correct', true);
-                }])
+                ->with(['answers'])
+                ->orderBy('order')
                 ->get();
 
             $totalPoints = $questions->sum('points');
@@ -127,7 +91,7 @@ class UserQuizController extends Controller
 
             foreach ($questions as $question) {
                 $userAnswer = $validated['answers'][$question->id] ?? null;
-                $correctAnswer = $question->answers->first();
+                $correctAnswer = $question->answers->firstWhere('is_correct', true);
                 
                 $isCorrect = $userAnswer === $correctAnswer->option_letter;
                 
@@ -137,8 +101,20 @@ class UserQuizController extends Controller
 
                 $results[] = [
                     'question_id' => $question->id,
+                    'question_text' => $question->question_text,
                     'user_answer' => $userAnswer,
+                    'correct_answer' => $correctAnswer->option_letter,
                     'is_correct' => $isCorrect,
+                    'points' => $question->points,
+                    'earned_points' => $isCorrect ? $question->points : 0,
+                    'answers' => $question->answers->map(function($answer) {
+                        return [
+                            'option_letter' => $answer->option_letter,
+                            'answer_text' => $answer->answer_text,
+                            'is_correct' => $answer->is_correct,
+                            'explanation' => $answer->explanation
+                        ];
+                    })
                 ];
             }
 
@@ -153,7 +129,8 @@ class UserQuizController extends Controller
                 'completed_at' => now(),
                 'completion_time' => $validated['time_taken'],
                 'score' => $score,
-                'passed' => $passed
+                'passed' => $passed,
+                'answers_data' => json_encode($results) // Store the full results
             ]);
 
             DB::commit();
@@ -161,9 +138,10 @@ class UserQuizController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Quiz submitted successfully',
-                'attempt_id' => $attempt->id,
-                'score' => $score,
-                'passed' => $passed
+                'redirect_url' => route('lessons.quiz.results', [
+                    'id' => $id,
+                    'attempt' => Crypt::encryptString($attempt->id)
+                ])
             ]);
 
         } catch (\Exception $e) {
@@ -188,20 +166,27 @@ class UserQuizController extends Controller
 
             $quiz = Quiz::findOrFail($quizAttempt->quiz_id);
 
-            // Get results from session
-            $results = session('results', []);
-            $score = session('score', $quizAttempt->score);
-            $passed = session('passed', $quizAttempt->passed);
-            $totalPoints = session('total_points', 0);
-            $earnedPoints = session('earned_points', 0);
+            // Decode the stored results
+            $results = json_decode($quizAttempt->answers_data, true);
+            
+            // Check if answers_data is null (old attempts before migration)
+            if ($results === null) {
+                return redirect()->route('lessons.quiz.retake', $id)
+                    ->with('info', 'This quiz attempt is from an older version. Please retake the quiz.');
+            }
+            
+            $totalQuestions = count($results);
+            $correctAnswers = collect($results)->where('is_correct', true)->count();
+            $totalPoints = collect($results)->sum('points');
+            $earnedPoints = collect($results)->sum('earned_points');
 
             return view('user.home.lesson.quiz-results', compact(
                 'lesson',
                 'quiz',
                 'quizAttempt',
                 'results',
-                'score',
-                'passed',
+                'totalQuestions',
+                'correctAnswers',
                 'totalPoints',
                 'earnedPoints'
             ));
@@ -209,6 +194,27 @@ class UserQuizController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('user.home')
                 ->with('error', 'Quiz results not found.');
+        }
+    }
+
+    public function retake($id)
+    {
+        try {
+            $lessonId = Crypt::decryptString($id);
+            $lesson = Lesson::findOrFail($lessonId);
+            
+            $quiz = Quiz::where('lesson_id', $lesson->id)
+                ->where('is_active', true)
+                ->firstOrFail();
+
+            // Set session flag to allow retake (bypass latest attempt check)
+            session()->put('allow_retake', true);
+
+            return redirect()->route('lessons.quiz.show', $id);
+
+        } catch (\Exception $e) {
+            return redirect()->route('user.home')
+                ->with('error', 'Unable to retake quiz.');
         }
     }
 }

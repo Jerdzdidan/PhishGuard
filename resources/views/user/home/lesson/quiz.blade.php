@@ -19,25 +19,13 @@ QUIZ - {{ $lesson->title }}
     cursor: pointer;
     transition: all 0.3s ease;
 }
-.answer-option:hover:not(.disabled) {
+.answer-option:hover {
     border-color: #696cff;
     background: #f8f9ff;
 }
 .answer-option.selected {
     border-color: #696cff;
     background: #f8f9ff;
-}
-.answer-option.correct {
-    border-color: #28c76f;
-    background: #f0fdf4;
-}
-.answer-option.incorrect {
-    border-color: #ea5455;
-    background: #fff5f5;
-}
-.answer-option.disabled {
-    cursor: not-allowed;
-    opacity: 0.7;
 }
 .question-card {
     border-left: 4px solid #1E7F5C;
@@ -51,19 +39,6 @@ QUIZ - {{ $lesson->title }}
     display: flex;
     align-items: center;
     justify-content: center;
-}
-.score-summary {
-    padding: 2rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-}
-.score-summary.passed {
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border: 2px solid #28c76f;
-}
-.score-summary.failed {
-    background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
-    border: 2px solid #ea5455;
 }
 </style>
 @endsection
@@ -122,13 +97,6 @@ QUIZ - {{ $lesson->title }}
                         </div>
                     </div>
 
-                    @if(session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
-
                     <form id="quizForm">
                         @csrf
                         <input type="hidden" name="time_taken" id="timeTaken" value="0">
@@ -143,8 +111,7 @@ QUIZ - {{ $lesson->title }}
                                         @foreach($question->answers as $answer)
                                             <div class="answer-option" 
                                                  data-question="{{ $question->id }}" 
-                                                 data-option="{{ $answer->option_letter }}"
-                                                 data-correct="{{ $answer->is_correct ? 'true' : 'false' }}">
+                                                 data-option="{{ $answer->option_letter }}">
                                                 <div class="d-flex align-items-center gap-3">
                                                     <input type="radio" 
                                                            class="form-check-input" 
@@ -156,15 +123,7 @@ QUIZ - {{ $lesson->title }}
                                                         <span class="badge bg-label-primary me-2">{{ $answer->option_letter }}</span>
                                                         {{ $answer->answer_text }}
                                                     </label>
-                                                    <i class="ri-check-line text-success d-none correct-icon" style="font-size: 1.5rem;"></i>
-                                                    <i class="ri-close-line text-danger d-none incorrect-icon" style="font-size: 1.5rem;"></i>
                                                 </div>
-                                                @if($answer->explanation)
-                                                    <div class="explanation-text d-none mt-3 p-3 bg-label-primary rounded">
-                                                        <strong><i class="ri-information-line me-2"></i>Explanation:</strong>
-                                                        <p class="mb-0 mt-2">{{ $answer->explanation }}</p>
-                                                    </div>
-                                                @endif
                                             </div>
                                         @endforeach
                                     </div>
@@ -185,58 +144,6 @@ QUIZ - {{ $lesson->title }}
                             </div>
                         </div>
                     </form>
-                </div>
-
-                <!-- Results Screen -->
-                <div id="resultsScreen" class="d-none">
-                    <div class="score-summary text-center" id="scoreSummary">
-                        <h3 class="mb-3" id="resultTitle"></h3>
-                        <div class="display-4 mb-3" id="scoreDisplay"></div>
-                        <p class="mb-0" id="scoreMessage"></p>
-                    </div>
-
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <div class="border rounded p-3 text-center">
-                                <h6 class="text-muted mb-1">Score</h6>
-                                <h4 class="mb-0" id="pointsDisplay"></h4>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3 text-center">
-                                <h6 class="text-muted mb-1">Correct</h6>
-                                <h4 class="mb-0 text-success" id="correctDisplay"></h4>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3 text-center">
-                                <h6 class="text-muted mb-1">Time</h6>
-                                <h4 class="mb-0" id="timeDisplay"></h4>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3 text-center">
-                                <h6 class="text-muted mb-1">Passing Score</h6>
-                                <h4 class="mb-0">{{ $quiz->passing_score }}%</h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h5 class="mb-3">Review Your Answers</h5>
-                    <div id="reviewQuestions"></div>
-
-                    <div class="card mt-4">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <a href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}" class="btn btn-label-secondary">
-                                    <i class="ri-arrow-left-line me-1"></i> Back to Lesson
-                                </a>
-                                <button type="button" class="btn btn-primary" id="retakeQuizBtn">
-                                    <i class="ri-restart-line me-1"></i> Retake Quiz
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -295,7 +202,7 @@ QUIZ - {{ $lesson->title }}
                 <hr>
                 <div class="alert alert-info mb-0">
                     <i class="ri-information-line me-2"></i>
-                    <small id="quizInfoText">Answer all questions before submitting. You can review your answers before final submission.</small>
+                    <small>Answer all questions before submitting.</small>
                 </div>
             </div>
         </div>
@@ -308,20 +215,11 @@ QUIZ - {{ $lesson->title }}
 $(document).ready(function() {
     let startTime;
     let timerInterval;
-    let quizData = @json($questions);
-    let totalPoints = {{ $questions->sum('points') }};
-    let passingScore = {{ $quiz->passing_score }};
     
-    // Start Quiz Button
     $('#startQuizBtn').on('click', function() {
         $('#readyScreen').addClass('d-none');
         $('#quizScreen').removeClass('d-none');
         startQuiz();
-    });
-
-    // Retake Quiz Button
-    $('#retakeQuizBtn').on('click', function() {
-        location.reload();
     });
 
     function startQuiz() {
@@ -342,8 +240,6 @@ $(document).ready(function() {
 
     // Answer selection
     $('.answer-option').on('click', function() {
-        if ($(this).hasClass('disabled')) return;
-        
         const questionId = $(this).data('question');
         const option = $(this).data('option');
         
@@ -352,7 +248,6 @@ $(document).ready(function() {
         $(`#q${questionId}_${option}`).prop('checked', true);
     });
 
-    // Form submission
     $('#quizForm').on('submit', function(e) {
         e.preventDefault();
         
@@ -360,7 +255,6 @@ $(document).ready(function() {
         const answeredQuestions = $('input[type="radio"]:checked').length;
         
         if (answeredQuestions < totalQuestions) {
-            // Show incomplete quiz warning
             Swal.fire({
                 title: 'Incomplete Quiz',
                 html: `You have only answered <strong>${answeredQuestions}</strong> out of <strong>${totalQuestions}</strong> questions.<br><br>Do you want to submit anyway?`,
@@ -400,179 +294,43 @@ $(document).ready(function() {
 
     function submitQuiz() {
         const formData = new FormData($('#quizForm')[0]);
-        const answers = {};
         
-        $('input[type="radio"]:checked').each(function() {
-            const name = $(this).attr('name');
-            const questionId = name.match(/\d+/)[0];
-            answers[questionId] = $(this).val();
-        });
-
-        // Calculate results
-        let earnedPoints = 0;
-        let correctAnswers = 0;
-        const results = [];
-
-        quizData.forEach(function(question) {
-            const userAnswer = answers[question.id];
-            const correctAnswer = question.answers.find(a => a.is_correct);
-            const isCorrect = userAnswer === correctAnswer.option_letter;
-
-            if (isCorrect) {
-                earnedPoints += question.points;
-                correctAnswers++;
-            }
-
-            results.push({
-                question_id: question.id,
-                question_text: question.question_text,
-                user_answer: userAnswer,
-                correct_answer: correctAnswer.option_letter,
-                is_correct: isCorrect,
-                points: question.points,
-                earned_points: isCorrect ? question.points : 0
-            });
-        });
-
-        const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
-        const passed = score >= passingScore;
-        const timeTaken = parseInt($('#timeTaken').val());
-
-        // Save to database
-        saveQuizAttempt(answers, timeTaken, score, passed);
-
-        // Show results
-        showResults(score, passed, earnedPoints, correctAnswers, timeTaken, results);
-    }
-
-    function saveQuizAttempt(answers, timeTaken, score, passed) {
         $.ajax({
             url: '{{ route("lessons.quiz.submit", Crypt::encryptString($lesson->id)) }}',
             type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                answers: answers,
-                time_taken: timeTaken
-            },
+            data: formData,
+            processData: false,
+            contentType: false,
             success: function(response) {
-                console.log('Quiz saved successfully');
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Quiz Submitted!',
+                        text: response.message,
+                        confirmButtonColor: '#696cff',
+                    }).then(() => {
+                        window.location.href = response.redirect_url;
+                    });
+                }
             },
             error: function(xhr) {
-                console.error('Error saving quiz:', xhr);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to submit quiz. Please try again.',
+                    confirmButtonColor: '#ea5455',
+                });
             }
         });
     }
 
-    function showResults(score, passed, earnedPoints, correctAnswers, timeTaken, results) {
-        $('#quizScreen').addClass('d-none');
-        $('#resultsScreen').removeClass('d-none');
-
-        // Update summary
-        const $summary = $('#scoreSummary');
-        $summary.removeClass('passed failed').addClass(passed ? 'passed' : 'failed');
-        
-        $('#resultTitle').text(passed ? 'Congratulations! You Passed!' : 'Quiz Complete');
-        $('#scoreDisplay').html(`${score}%`);
-        $('#scoreMessage').text(passed ? 
-            `You've successfully passed the quiz with a score of ${score}%!` : 
-            `You scored ${score}%. You need ${passingScore}% to pass. Keep trying!`
-        );
-
-        $('#pointsDisplay').text(`${earnedPoints}/${totalPoints}`);
-        $('#correctDisplay').text(`${correctAnswers}/${quizData.length}`);
-        
-        const minutes = Math.floor(timeTaken / 60);
-        const seconds = timeTaken % 60;
-        $('#timeDisplay').text(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-
-        // Show review
-        showReview(results);
-        
-        // Update info text
-        $('#quizInfoText').text('Review your answers below. You can retake the quiz if you want to improve your score.');
-    }
-
-    function showReview(results) {
-        const $review = $('#reviewQuestions');
-        $review.empty();
-
-        results.forEach(function(result, index) {
-            const question = quizData.find(q => q.id == result.question_id);
-            
-            let html = `
-                <div class="card question-card mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
-                                <h6 class="mb-1">Question ${index + 1}</h6>
-                                <p class="mb-0">${result.question_text}</p>
-                            </div>
-                            <div class="text-end">
-                                ${result.is_correct ? 
-                                    '<span class="badge bg-success"><i class="ri-check-line me-1"></i> Correct</span>' :
-                                    '<span class="badge bg-danger"><i class="ri-close-line me-1"></i> Incorrect</span>'
-                                }
-                                <div class="text-muted mt-1">
-                                    <small>${result.earned_points}/${result.points} points</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="answers">
-            `;
-
-            question.answers.forEach(function(answer) {
-                const isUserAnswer = answer.option_letter === result.user_answer;
-                const isCorrect = answer.is_correct;
-                
-                let optionClass = '';
-                let icon = '';
-                
-                if (isCorrect) {
-                    optionClass = 'correct';
-                    icon = '<i class="ri-check-line text-success" style="font-size: 1.5rem;"></i>';
-                } else if (isUserAnswer && !isCorrect) {
-                    optionClass = 'incorrect';
-                    icon = '<i class="ri-close-line text-danger" style="font-size: 1.5rem;"></i>';
-                }
-
-                html += `
-                    <div class="answer-option ${optionClass} disabled">
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="badge ${isCorrect ? 'bg-success' : (isUserAnswer ? 'bg-danger' : 'bg-label-secondary')} me-2">${answer.option_letter}</span>
-                            <span class="flex-grow-1">${answer.answer_text}</span>
-                            ${icon}
-                        </div>
-                        ${answer.explanation && (isCorrect || isUserAnswer) ? `
-                            <div class="mt-3 p-3 bg-label-primary rounded">
-                                <strong><i class="ri-information-line me-2"></i>Explanation:</strong>
-                                <p class="mb-0 mt-2">${answer.explanation}</p>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-
-            html += `
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            $review.append(html);
-        });
-    }
-
-    // Prevent accidental page leave during quiz
     let quizInProgress = false;
-    
     $('#startQuizBtn').on('click', function() {
         quizInProgress = true;
     });
-
     $('#quizForm').on('submit', function() {
         quizInProgress = false;
     });
-
     window.addEventListener('beforeunload', function(e) {
         if (quizInProgress && !$('#quizScreen').hasClass('d-none')) {
             e.preventDefault();

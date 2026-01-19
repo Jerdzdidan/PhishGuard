@@ -17,7 +17,8 @@ class UserQuizAttempt extends Model
         'completed_at',
         'completion_time',
         'score',
-        'passed'
+        'passed',
+        'answers_data'
     ];
 
     protected $casts = [

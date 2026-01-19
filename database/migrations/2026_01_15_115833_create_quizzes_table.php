@@ -49,6 +49,7 @@ return new class extends Migration
             $table->integer('completion_time')->nullable(); // in seconds
             $table->integer('score')->nullable(); // percentage or points
             $table->boolean('passed')->default(false);
+            $table->json('answers_data')->nullable();
             $table->timestamps();
         });
     }
