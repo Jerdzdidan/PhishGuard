@@ -14,8 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class UserQuizController extends Controller
 {
-    //
-    public function show($id)
+   public function show($id)
     {
         $lessonId = Crypt::decryptString($id);
         $lesson = Lesson::findOrFail($lessonId);
@@ -41,6 +40,61 @@ class UserQuizController extends Controller
         }
 
         return view('user.home.lesson.quiz', compact('lesson', 'quiz', 'questions'));
+    }
+
+    public function checkAttempt($id)
+    {
+        $lessonId = Crypt::decryptString($id);
+        $lesson = Lesson::findOrFail($lessonId);
+        
+        $quiz = Quiz::where('lesson_id', $lesson->id)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Get the latest attempt for this user and quiz
+        $attempt = UserQuizAttempt::where('user_id', Auth::id())
+            ->where('quiz_id', $quiz->id)
+            ->latest()
+            ->first();
+
+        if (!$attempt) {
+            return response()->json(['has_attempt' => false]);
+        }
+
+        // Get questions with correct answers
+        $questions = Question::where('quiz_id', $quiz->id)
+            ->with(['answers' => function($query) {
+                $query->orderBy('option_letter');
+            }])
+            ->orderBy('order')
+            ->get();
+
+        // Reconstruct results from the attempt
+        // Note: We need to store user answers in the database to reconstruct this
+        // For now, we'll just mark questions as answered
+        $results = [];
+        
+        // Since we don't have individual answer records, we'll need to add that
+        // For now, return basic info
+        foreach ($questions as $question) {
+            $correctAnswer = $question->answers->firstWhere('is_correct', true);
+            
+            $results[] = [
+                'question_id' => $question->id,
+                'question_text' => $question->question_text,
+                'user_answer' => null, // We'll need to store this
+                'correct_answer' => $correctAnswer->option_letter,
+                'is_correct' => false, // We'll need to calculate this
+                'points' => $question->points,
+                'earned_points' => 0, // We'll need to calculate this
+            ];
+        }
+
+        return response()->json([
+            'has_attempt' => true,
+            'attempt' => $attempt,
+            'results' => $results
+        ]);
     }
 
     public function submit(Request $request, $id)
@@ -83,13 +137,8 @@ class UserQuizController extends Controller
 
                 $results[] = [
                     'question_id' => $question->id,
-                    'question_text' => $question->question_text,
                     'user_answer' => $userAnswer,
-                    'correct_answer' => $correctAnswer->option_letter,
                     'is_correct' => $isCorrect,
-                    'points' => $question->points,
-                    'earned_points' => $isCorrect ? $question->points : 0,
-                    'explanation' => $question->answers->firstWhere('option_letter', $userAnswer)?->explanation ?? ''
                 ];
             }
 
@@ -109,22 +158,20 @@ class UserQuizController extends Controller
 
             DB::commit();
 
-            return redirect()->route('lessons.quiz.results', [
-                'id' => $id,
-                'attempt' => Crypt::encryptString($attempt->id)
-            ])->with([
-                'results' => $results,
+            return response()->json([
+                'success' => true,
+                'message' => 'Quiz submitted successfully',
+                'attempt_id' => $attempt->id,
                 'score' => $score,
-                'passed' => $passed,
-                'total_points' => $totalPoints,
-                'earned_points' => $earnedPoints
+                'passed' => $passed
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()
-                ->with('error', 'Failed to submit quiz: ' . $e->getMessage())
-                ->withInput();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit quiz: ' . $e->getMessage()
+            ], 500);
         }
     }
 

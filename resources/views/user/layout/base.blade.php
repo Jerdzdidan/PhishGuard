@@ -42,6 +42,9 @@
     {{-- <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/libs/select2/select2.css') }}
           <link rel="stylesheet" href="../../assets/vendor/libs/plyr/plyr.css" /> --}}
 
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
     <!-- Page CSS -->
     
     <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/css/pages/app-academy.css') }}" />
@@ -414,6 +417,9 @@
     <!-- Vendors JS -->
     {{-- <script src="../../assets/vendor/libs/select2/select2.js"></script> --}}
     {{-- <script src="../../assets/vendor/libs/plyr/plyr.js"></script> --}}
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Main JS -->
     

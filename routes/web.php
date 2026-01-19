@@ -41,6 +41,7 @@ Route::prefix('')->middleware('auth')->group(function () {
             Route::get('{id}', [UserQuizController::class, 'show'])->name('show');
             Route::post('submit/{id}', [UserQuizController::class, 'submit'])->name('submit');
             Route::get('results/{id}/{attempt}', [UserQuizController::class, 'results'])->name('results');
+            Route::get('checkAttempt/{id}', [UserQuizController::class, 'checkAttempt'])->name('check-attempt');
         });
     });
 });
