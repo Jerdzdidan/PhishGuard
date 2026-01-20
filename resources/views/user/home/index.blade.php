@@ -59,6 +59,7 @@ HOME
               :difficulty="$lesson->difficulty"
               :time="$lesson->time"
               route="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}"
+              :lesson="$lesson"
           />
         @endforeach
        

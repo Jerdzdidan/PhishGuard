@@ -154,12 +154,7 @@ QUIZ RESULTS - {{ $lesson->title }}
                                             @endif
                                         </div>
                                         
-                                        @if($answer['explanation'] && $isUserAnswer)
-                                            <div class="mt-3 p-3 bg-label-primary rounded">
-                                                <strong><i class="ri-information-line me-2"></i>Explanation:</strong>
-                                                <p class="mb-0 mt-2">{{ $answer['explanation'] }}</p>
-                                            </div>
-                                        @endif
+                            
                                     </div>
                                 @endforeach
                             </div>

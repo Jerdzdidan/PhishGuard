@@ -91,9 +91,40 @@ LESSONS
       placeholder: 'Difficulty'
   });
 
+  $('#prerequisite_lesson_id').select2({
+      placeholder: 'None - First Lesson',
+      allowClear: true
+  });
+
+  // Load available lessons for prerequisite selection
+  function loadPrerequisiteLessons() {
+      $.ajax({
+          url: "{{ route('admin.lessons.index') }}",
+          type: 'GET',
+          success: function(response) {
+              // Extract lessons from the response (you may need to adjust based on your response structure)
+              // For now, we'll populate from the current page data
+              const lessonsData = @json($lessons->items());
+              
+              const select = $('#prerequisite_lesson_id');
+              select.find('option:not(:first)').remove(); // Clear existing options except the first
+              
+              lessonsData.forEach(lesson => {
+                  select.append(new Option(lesson.title, lesson.id, false, false));
+              });
+              
+              select.trigger('change');
+          }
+      });
+  }
+
+  // Load lessons when modal opens
+  $('#add-or-update-modal').on('shown.bs.offcanvas', function() {
+      loadPrerequisiteLessons();
+  });
+
   window.lessonCRUD = new GenericCRUD({
       storeUrl: "{{ route('admin.lessons.store') }}",
-
       entityName: 'Lesson',
       csrfToken: "{{ csrf_token() }}",
       form: '#add-or-update-form',
@@ -110,6 +141,5 @@ LESSONS
   lessonCRUD.onCreateSuccess = function(response) {
       window.location.reload();
   };
-  
 </script>
 @endsection

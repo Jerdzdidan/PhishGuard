@@ -15,10 +15,20 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained();
             $table->foreignId('lesson_id')->constrained();
-            $table->boolean('has_started');
-            $table->boolean('has_completed');
-            $table->boolean('progress');
+            $table->boolean('is_unlocked')->default(false);
+            $table->boolean('content_viewed')->default(false);
+            $table->boolean('quiz_passed')->default(false);
+            $table->integer('best_score')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
+        });
+
+        Schema::table('lessons', function (Blueprint $table) {
+            $table->foreignId('prerequisite_lesson_id')
+                ->nullable()
+                ->after('is_active')
+                ->constrained('lessons')
+                ->nullOnDelete();
         });
     }
 
@@ -28,5 +38,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('student_lessons');
+        
+        Schema::table('lessons', function (Blueprint $table) {
+            $table->dropForeign(['prerequisite_lesson_id']);
+            $table->dropColumn('prerequisite_lesson_id');
+        });
     }
 };

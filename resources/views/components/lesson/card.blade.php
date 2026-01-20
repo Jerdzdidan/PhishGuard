@@ -1,30 +1,102 @@
 <div class="col-sm-6 col-lg-4">
-    <div class="card p-2 h-100 shadow-none border">
-    <div class="rounded-2 text-center mb-4 position-relative">
-        <a href="{{ $route }}">
-            @if ($img)
-                <img class="img-fluid" src="{{ $img }}" />
+    <div class="card p-2 h-100 shadow-none border {{ !$lesson->isUnlocked() ? 'opacity-75' : '' }}">
+        <div class="rounded-2 text-center mb-4 position-relative">
+            @if($lesson->isUnlocked())
+                <a href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}">
             @else
-                <img class="img-fluid" src="{{ asset('img/lessons/default.png') }}" />
+                <div class="position-relative" style="cursor: not-allowed;">
             @endif
-        </a>
-    </div>
-    <div class="card-body p-4 pt-2">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-        <span class="badge {{ $difficulty === 'EASY' ? 'bg-label-primary' : ($difficulty === 'MEDIUM' ? 'bg-label-warning' : 'bg-label-danger') }}">{{ $difficulty }}</span>
-        {{-- <p class="d-flex align-items-center justify-content-center fw-medium gap-1 mb-0">
-            4.4 <span class="text-warning"><i class="icon-base bx bxs-star me-1 mb-1_5"></i></span><span class="fw-normal">(1.23k)</span>
-        </p> --}}
+                @if ($lesson->image_path)
+                    <img class="img-fluid" src="{{ asset('storage/' . $lesson->image_path) }}" style="height: 290px; object-fit: cover;" />
+                @else
+                    <img class="img-fluid" src="{{ asset('img/lessons/default.png') }}" style="height: 290px; object-fit: cover;" />
+                @endif
+                
+                @if(!$lesson->isUnlocked())
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
+                         style="background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(2px);">
+                        <div class="text-center text-white">
+                            <i class="bx bx-lock-alt" style="font-size: 3rem;"></i>
+                            <p class="mb-0 mt-2 fw-bold">Locked</p>
+                        </div>
+                    </div>
+                @elseif($lesson->isCompleted())
+                    <span class="badge bg-success position-absolute top-0 end-0 m-2">
+                        <i class="bx bx-check-circle me-1"></i> Completed
+                    </span>
+                @endif
+            @if($lesson->isUnlocked())
+                </a>
+            @else
+                </div>
+            @endif
         </div>
-        <a href="app-academy-course-details.html" class="h5">{{ $title }}</a>
-        <p class="mt-1">{{ $description }}</p>
-        <p class="d-flex align-items-center mb-1"><i class="icon-base bx bx-time-five me-1"></i>{{ $time }} min</p>
-        <div class="progress mb-4" style="height: 8px">
-        <div class="progress-bar" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+        <div class="card-body p-4 pt-2">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <span class="badge {{ $lesson->difficulty === 'EASY' ? 'bg-label-primary' : ($lesson->difficulty === 'MEDIUM' ? 'bg-label-warning' : 'bg-label-danger') }}">
+                    {{ $lesson->difficulty }}
+                </span>
+            </div>
+            
+            <a href="{{ $lesson->isUnlocked() ? route('lessons.show', Crypt::encryptString($lesson->id)) : 'javascript:void(0)' }}" 
+               class="h5 {{ !$lesson->isUnlocked() ? 'text-muted' : '' }}">
+                {{ $lesson->title }}
+            </a>
+            
+            <p class="mt-1 {{ !$lesson->isUnlocked() ? 'text-muted' : '' }}">{{ $lesson->description }}</p>
+            
+            @if(!$lesson->isUnlocked() && $lesson->prerequisiteLesson)
+                <div class="alert alert-warning p-2 mb-2">
+                    <small>
+                        <i class="bx bx-info-circle me-1"></i>
+                        Complete <strong>{{ $lesson->prerequisiteLesson->title }}</strong> first
+                    </small>
+                </div>
+            @endif
+            
+            <p class="d-flex align-items-center mb-1">
+                <i class="icon-base bx bx-time-five me-1"></i>{{ $lesson->time }} min
+            </p>
+            
+            @if($lesson->isUnlocked() && $lesson->progress)
+                <div class="progress mb-4" style="height: 8px">
+                    @php
+                        $progressPercent = 0;
+                        if ($lesson->progress->content_viewed && (!$lesson->quiz || !$lesson->quiz->is_active)) {
+                            $progressPercent = 100;
+                        } elseif ($lesson->progress->content_viewed && $lesson->progress->quiz_passed) {
+                            $progressPercent = 100;
+                        } elseif ($lesson->progress->content_viewed) {
+                            $progressPercent = 50;
+                        }
+                    @endphp
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: {{ $progressPercent }}%" 
+                         aria-valuenow="{{ $progressPercent }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+            @else
+                <div class="progress mb-4" style="height: 8px">
+                    <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            @endif
+            
+            <div class="d-flex flex-column flex-md-row gap-4 text-nowrap flex-wrap flex-md-nowrap flex-lg-wrap flex-xxl-nowrap">
+                @if($lesson->isUnlocked())
+                    <a class="w-100 btn btn-primary d-flex align-items-center" 
+                       href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}">
+                        <i class="icon-base bx bx-rotate-right icon-sm align-middle scaleX-n1-rtl me-2"></i>
+                        <span>{{ $lesson->isCompleted() ? 'Review' : 'Start' }}</span>
+                    </a>
+                @else
+                    <button class="w-100 btn btn-secondary d-flex align-items-center" disabled>
+                        <i class="icon-base bx bx-lock-alt icon-sm align-middle me-2"></i>
+                        <span>Locked</span>
+                    </button>
+                @endif
+            </div>
         </div>
-        <div class="d-flex flex-column flex-md-row gap-4 text-nowrap flex-wrap flex-md-nowrap flex-lg-wrap flex-xxl-nowrap">
-        <a class="w-100 btn btn-primary d-flex align-items-center" href="{{ $route }}"> <i class="icon-base bx bx-rotate-right icon-sm align-middle scaleX-n1-rtl me-2"></i><span>Start</span> </a>
-        </div>
-    </div>
     </div>
 </div>

@@ -1,4 +1,3 @@
-
 <x-modals.creation-and-update-modal 
     id="add-or-update-modal"
     title="New Lesson"
@@ -6,7 +5,6 @@
     submitButtonName="Submit"
 >
 
-{{-- Start Year and End Year --}}
 <div class="col-sm-12 form-control-validation">
     <x-input.input-field
         id="title" 
@@ -41,7 +39,6 @@
     />
 </div>
 
-{{-- Semester --}}
 <div class="col-sm-12 form-control-validation mb-2">
     <x-input.select-field
         id="difficulty"
@@ -54,6 +51,14 @@
         ]"
         placeholder="Select Category"
     />
+</div>
+
+<div class="col-sm-12 form-control-validation mb-2">
+    <label class="form-label" for="prerequisite_lesson_id">Prerequisite Lesson (Optional)</label>
+    <select id="prerequisite_lesson_id" name="prerequisite_lesson_id" class="form-control w-100">
+        <option value="">None - First Lesson</option>
+    </select>
+    <small class="text-muted">Select which lesson must be completed before this one</small>
 </div>
 
 </x-modals.creation-and-update-modal>

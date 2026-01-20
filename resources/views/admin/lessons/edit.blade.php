@@ -275,6 +275,24 @@ body:not(.edit-mode-active) .inline-edit-field {
                                     </label>
                                 </div>
                             </div>
+                            <div id="prerequisiteSection" class="d-none">
+                                <hr>
+                                <div class="ms-4">
+                                    <label for="prerequisite_lesson_id" class="form-label">Prerequisite Lesson</label>
+                                    <select class="form-select" name="prerequisite_lesson_id" id="prerequisite_lesson_id">
+                                        <option value="">None - First Lesson</option>
+                                        @foreach($availableLessons as $availableLesson)
+                                            <option value="{{ $availableLesson->id }}" 
+                                                {{ $lesson->prerequisite_lesson_id == $availableLesson->id ? 'selected' : '' }}>
+                                                {{ $availableLesson->title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted d-block mt-2">
+                                        Users must complete the prerequisite lesson before accessing this one
+                                    </small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -305,6 +323,7 @@ $(document).ready(function() {
     const $imageUpload = $('#imageUpload');
     const $lessonImage = $('#lessonImage');
     const $activeStatusSection = $('#activeStatusSection');
+    const $prerequisiteSection = $('#prerequisiteSection'); // Add this
     
     // Store original values
     const originalValues = {};
@@ -325,6 +344,7 @@ $(document).ready(function() {
             $('body').addClass('edit-mode-active');
             $editControls.removeClass('d-none');
             $activeStatusSection.removeClass('d-none');
+            $prerequisiteSection.removeClass('d-none'); // Add this
             $toggleBtn.html('<i class="ri-eye-line me-2"></i> Preview Mode');
             $toggleBtn.removeClass('btn-primary').addClass('btn-label-secondary');
         } else {
@@ -357,6 +377,7 @@ $(document).ready(function() {
         $('body').removeClass('edit-mode-active');
         $editControls.addClass('d-none');
         $activeStatusSection.addClass('d-none');
+        $prerequisiteSection.addClass('d-none'); // Add this
         $toggleBtn.html('<i class="ri-edit-box-line me-2"></i> Edit Lesson');
         $toggleBtn.addClass('btn-primary').removeClass('btn-label-secondary');
         

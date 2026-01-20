@@ -14,10 +14,16 @@ use Illuminate\Support\Facades\DB;
 
 class UserQuizController extends Controller
 {
-   public function show($id)
+    public function show($id)
     {
         $lessonId = Crypt::decryptString($id);
         $lesson = Lesson::findOrFail($lessonId);
+        
+        // Check if lesson is unlocked
+        if (!$lesson->isUnlocked()) {
+            return redirect()->route('lessons.show', $id)
+                ->with('error', 'This lesson is locked.');
+        }
         
         $quiz = Quiz::where('lesson_id', $lesson->id)
             ->where('is_active', true)
@@ -130,8 +136,17 @@ class UserQuizController extends Controller
                 'completion_time' => $validated['time_taken'],
                 'score' => $score,
                 'passed' => $passed,
-                'answers_data' => json_encode($results) // Store the full results
+                'answers_data' => json_encode($results)
             ]);
+
+            // Update student lesson progress
+            $progress = $lesson->getStudentProgress();
+            $progress->updateQuizResults($score, $passed);
+
+            // If completed, unlock dependent lessons
+            if ($progress->isCompleted()) {
+                $lesson->unlockDependentLessons();
+            }
 
             DB::commit();
 

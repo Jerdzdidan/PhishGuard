@@ -10,10 +10,9 @@ use Illuminate\Support\Facades\Storage;
 
 class LessonController extends Controller
 {
-    //
     public function index()
     {
-        $lessons = Lesson::paginate(6); 
+        $lessons = Lesson::with('prerequisiteLesson')->paginate(6); 
         $total = Lesson::count();
 
         return view('admin.lessons.index', [
@@ -25,19 +24,24 @@ class LessonController extends Controller
     public function edit($id)
     {
         $lessonId = Crypt::decryptString($id);
-
         $lesson = Lesson::findOrFail($lessonId);
+        
+        // Get all lessons except the current one for prerequisite selection
+        $availableLessons = Lesson::where('id', '!=', $lessonId)
+            ->orderBy('created_at')
+            ->get();
 
-        return view('admin.lessons.edit', compact('lesson'));
+        return view('admin.lessons.edit', compact('lesson', 'availableLessons'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'     => 'required|string|max:255',
-            'description'    => 'required|string',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
             'time' => 'required|integer',
             'difficulty' => 'required|string',
+            'prerequisite_lesson_id' => 'nullable|exists:lessons,id'
         ]);
 
         Lesson::create([
@@ -45,6 +49,7 @@ class LessonController extends Controller
             'description' => $validated['description'],
             'time' => $validated['time'],
             'difficulty' => $validated['difficulty'],
+            'prerequisite_lesson_id' => $validated['prerequisite_lesson_id'] ?? null,
             'content' => 'Change content here',
         ]);
 
@@ -68,10 +73,30 @@ class LessonController extends Controller
             'time' => 'required|integer|min:1',
             'content' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
-            'is_active' => 'nullable|boolean'
+            'is_active' => 'nullable|boolean',
+            'prerequisite_lesson_id' => 'nullable|exists:lessons,id'
         ]);
 
         $lesson = Lesson::findOrFail($lessonId);
+
+        // Prevent circular dependencies
+        if ($validated['prerequisite_lesson_id']) {
+            $prerequisite = Lesson::find($validated['prerequisite_lesson_id']);
+            
+            // Check if the prerequisite has this lesson as its prerequisite (direct circular)
+            if ($prerequisite && $prerequisite->prerequisite_lesson_id == $lessonId) {
+                return redirect()->back()->with('error', 'Cannot create circular prerequisite dependency.');
+            }
+            
+            // Check for indirect circular dependencies
+            $current = $prerequisite;
+            while ($current && $current->prerequisite_lesson_id) {
+                if ($current->prerequisite_lesson_id == $lessonId) {
+                    return redirect()->back()->with('error', 'Cannot create circular prerequisite dependency.');
+                }
+                $current = Lesson::find($current->prerequisite_lesson_id);
+            }
+        }
 
         // Handle image upload using Storage
         if ($request->hasFile('image')) {
