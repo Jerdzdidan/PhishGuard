@@ -58,19 +58,31 @@
                 <i class="icon-base bx bx-time-five me-1"></i>{{ $lesson->time }} min
             </p>
             
-            @if($lesson->isUnlocked() && $lesson->progress)
-                <div class="progress mb-4" style="height: 8px">
-                    @php
-                        $progressPercent = 0;
-                        if ($lesson->progress->content_viewed && (!$lesson->quiz || !$lesson->quiz->is_active)) {
+            @if($lesson->isUnlocked())
+                @php
+                    $progress = $lesson->progress;
+                    $progressPercent = 0;
+                    
+                    if ($progress) {
+                        // Calculate progress based on lesson requirements
+                        $hasQuiz = $lesson->quiz && $lesson->quiz->is_active;
+                        
+                        if (!$hasQuiz && $progress->content_viewed) {
+                            // No quiz - just need to view content
                             $progressPercent = 100;
-                        } elseif ($lesson->progress->content_viewed && $lesson->progress->quiz_passed) {
-                            $progressPercent = 100;
-                        } elseif ($lesson->progress->content_viewed) {
-                            $progressPercent = 50;
+                        } elseif ($hasQuiz) {
+                            // Has quiz - need both content viewed and quiz passed
+                            if ($progress->content_viewed && $progress->quiz_passed) {
+                                $progressPercent = 100;
+                            } elseif ($progress->content_viewed) {
+                                $progressPercent = 50;
+                            }
                         }
-                    @endphp
-                    <div class="progress-bar" role="progressbar" 
+                    }
+                @endphp
+                <div class="progress mb-4" style="height: 8px">
+                    <div class="progress-bar {{ $progressPercent === 100 ? 'bg-success' : '' }}" 
+                         role="progressbar" 
                          style="width: {{ $progressPercent }}%" 
                          aria-valuenow="{{ $progressPercent }}" 
                          aria-valuemin="0" 

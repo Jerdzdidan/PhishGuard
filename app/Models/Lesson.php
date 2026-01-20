@@ -46,6 +46,14 @@ class Lesson extends Model
     }
 
     /**
+     * Get the current user's progress for this lesson
+     */
+    public function progress()
+    {
+        return $this->hasOne(StudentLesson::class)->where('user_id', Auth::id());
+    }
+
+    /**
      * Get student lesson progress for current user
      */
     public function getStudentProgress()
@@ -60,7 +68,7 @@ class Lesson extends Model
                 'lesson_id' => $this->id
             ],
             [
-                'is_unlocked' => $this->prerequisite_lesson_id === null, // Auto-unlock if no prerequisite
+                'is_unlocked' => $this->prerequisite_lesson_id === null,
                 'content_viewed' => false,
                 'quiz_passed' => false
             ]
