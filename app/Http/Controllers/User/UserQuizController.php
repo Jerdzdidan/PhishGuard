@@ -14,6 +14,35 @@ use Illuminate\Support\Facades\DB;
 
 class UserQuizController extends Controller
 {
+     /**
+     * Maximum number of questions to show per quiz
+     */
+    const MAX_QUESTIONS_PER_QUIZ = 5;
+
+    /**
+     * Fisher-Yates shuffle algorithm implementation
+     * 
+     * @param array $array
+     * @return array
+     */
+    private function fisherYatesShuffle($array)
+    {
+        $count = count($array);
+        
+        // Walk the array in reverse order
+        for ($i = $count - 1; $i > 0; $i--) {
+            // Pick a random index from 0 to i (inclusive)
+            $j = rand(0, $i);
+            
+            // Swap elements at positions i and j
+            $temp = $array[$i];
+            $array[$i] = $array[$j];
+            $array[$j] = $temp;
+        }
+        
+        return $array;
+    }
+
     public function show($id)
     {
         $lessonId = Crypt::decryptString($id);
@@ -55,15 +84,43 @@ class UserQuizController extends Controller
         }
 
         // Get all questions with answers
-        $questions = Question::where('quiz_id', $quiz->id)
+        $allQuestions = Question::where('quiz_id', $quiz->id)
             ->with('answers')
             ->orderBy('order')
-            ->get();
+            ->get()
+            ->toArray();
 
-        if ($questions->isEmpty()) {
+        if (count($allQuestions) === 0) {
             return redirect()->route('lessons.show', $id)
                 ->with('error', 'No questions available for this quiz.');
         }
+
+        // Apply Fischer-Yates shuffle to randomize questions
+        $shuffledQuestions = $this->fisherYatesShuffle($allQuestions);
+        
+        // Take only the first 5 questions (or fewer if there aren't 5)
+        $selectedQuestions = array_slice($shuffledQuestions, 0, self::MAX_QUESTIONS_PER_QUIZ);
+        
+        // Extract question IDs and store in session
+        $questionIds = array_map(function($q) {
+            return $q['id'];
+        }, $selectedQuestions);
+        
+        session(['quiz_question_ids_' . $quiz->id => $questionIds]);
+        
+        // Convert back to collection for view
+        $questions = collect($selectedQuestions)->map(function($question) {
+            $questionObj = new Question();
+            $questionObj->fill($question);
+            $questionObj->id = $question['id'];
+            $questionObj->setRelation('answers', collect($question['answers'])->map(function($answer) {
+                $answerObj = new \App\Models\Answer();
+                $answerObj->fill($answer);
+                $answerObj->id = $answer['id'];
+                return $answerObj;
+            }));
+            return $questionObj;
+        });
 
         return view('user.home.lesson.quiz', compact('lesson', 'quiz', 'questions'));
     }
@@ -85,11 +142,20 @@ class UserQuizController extends Controller
 
         DB::beginTransaction();
         try {
-            // Get all questions with correct answers
-            $questions = Question::where('quiz_id', $quiz->id)
+            // Get the question IDs from session (the shuffled ones)
+            $questionIds = session('quiz_question_ids_' . $quiz->id, []);
+            
+            if (empty($questionIds)) {
+                throw new \Exception('Quiz session expired. Please retake the quiz.');
+            }
+
+            // Get only the questions that were shown to the user
+            $questions = Question::whereIn('id', $questionIds)
                 ->with(['answers'])
-                ->orderBy('order')
-                ->get();
+                ->get()
+                ->sortBy(function($question) use ($questionIds) {
+                    return array_search($question->id, $questionIds);
+                });
 
             $totalPoints = $questions->sum('points');
             $earnedPoints = 0;
@@ -147,6 +213,9 @@ class UserQuizController extends Controller
             if ($progress->isCompleted()) {
                 $lesson->unlockDependentLessons();
             }
+
+            // Clear the session data
+            session()->forget('quiz_question_ids_' . $quiz->id);
 
             DB::commit();
 

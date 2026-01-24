@@ -188,6 +188,10 @@ QUIZ - {{ $lesson->title }}
             <div class="card-body">
                 <h6 class="mb-3">Quiz Information</h6>
                 <div class="d-flex justify-content-between mb-2">
+                    <span>Questions Shown</span>
+                    <strong>5</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
                     <span>Total Questions</span>
                     <strong>{{ $questions->count() }}</strong>
                 </div>
@@ -202,7 +206,7 @@ QUIZ - {{ $lesson->title }}
                 <hr>
                 <div class="alert alert-info mb-0">
                     <i class="ri-information-line me-2"></i>
-                    <small>Answer all questions before submitting.</small>
+                    <small>5 random questions will be shown from the question bank. Answer all questions before submitting.</small>
                 </div>
             </div>
         </div>
