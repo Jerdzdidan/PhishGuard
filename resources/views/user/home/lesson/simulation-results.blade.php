@@ -140,7 +140,11 @@ SIMULATION RESULTS - {{ $lesson->title }}
 
                 <h5 class="mb-3">Scenario Results</h5>
                 @foreach($scenarioResults as $index => $result)
-                    <div class="card result-card {{ $result['correct'] ? '' : 'incorrect' }} mb-3">
+                    @php
+                        // ✅ FIX: Handle both boolean and string values
+                        $isCorrect = $result['correct'] === true || $result['correct'] === 'true';
+                    @endphp
+                    <div class="card result-card {{ $isCorrect ? '' : 'incorrect' }} mb-3">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="flex-grow-1">
@@ -150,7 +154,7 @@ SIMULATION RESULTS - {{ $lesson->title }}
                                     </p>
                                 </div>
                                 <div>
-                                    @if($result['correct'])
+                                    @if($isCorrect)
                                         <span class="scenario-status correct">
                                             <i class="ri-check-line me-1"></i> Correct
                                         </span>

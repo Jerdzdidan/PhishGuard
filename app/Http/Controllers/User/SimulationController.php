@@ -239,17 +239,28 @@ class SimulationController extends Controller
 
             DB::beginTransaction();
 
+            // ✅ FIX: Convert string booleans to actual booleans
+            $scenarioResults = array_map(function($result) {
+                return [
+                    'scenario' => $result['scenario'],
+                    'correct' => $result['correct'] === 'true' || $result['correct'] === true,
+                    'selected_action' => $result['selected_action']
+                ];
+            }, $validated['scenario_results']);
+
             // Determine if passed (70% or higher)
-            $totalScenarios = count($validated['scenario_results']);
-            $percentage = $totalScenarios > 0 ? round(($validated['score'] / $totalScenarios) * 100) : 0;
+            $totalScenarios = count($scenarioResults);
+            // ✅ FIX: Count actual correct boolean values
+            $correctCount = collect($scenarioResults)->where('correct', true)->count();
+            $percentage = $totalScenarios > 0 ? round(($correctCount / $totalScenarios) * 100) : 0;
             $passed = $percentage >= 70;
 
             $attempt->update([
                 'completed_at' => now(),
-                'score' => $validated['score'],
+                'score' => $correctCount,  // ✅ Store the count of correct answers, not the input score
                 'time_taken' => $validated['time_taken'],
                 'click_data' => $validated['click_data'] ?? [],
-                'scenario_results' => $validated['scenario_results']
+                'scenario_results' => $scenarioResults  // ✅ Store the converted array
             ]);
 
             // Update student lesson progress

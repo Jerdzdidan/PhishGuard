@@ -750,17 +750,20 @@ $(document).ready(function() {
         clearInterval(timerInterval);
         const timeTaken = Math.floor((Date.now() - startTime) / 1000);
         
+        // ✅ FIX: Send as JSON to preserve boolean data types
         $.ajax({
             url: '{{ route("lessons.simulations.submit", ["id" => Crypt::encryptString($lesson->id), "simId" => $simulation["id"]]) }}',
             type: 'POST',
-            data: {
+            contentType: 'application/json',  // ✅ ADD THIS
+            dataType: 'json',                  // ✅ ADD THIS
+            data: JSON.stringify({             // ✅ CHANGE: Use JSON.stringify
                 _token: '{{ csrf_token() }}',
                 attempt_id: attemptId,
                 score: score,
                 time_taken: timeTaken,
                 click_data: clickData,
                 scenario_results: scenarioResults
-            },
+            }),
             success: function(response) {
                 if (response.success) {
                     window.location.href = response.redirect_url;
