@@ -208,6 +208,17 @@ QUIZ RESULTS - {{ $lesson->title }}
                                 </label>
                             </div>
                         @endif
+                        @if ($lesson->has_simulation)
+                            <hr>
+                            <div class="mb-4">
+                                <a href="{{ route('lessons.simulations.index', Crypt::encryptString($lesson->id)) }}">
+                                    <label class="form-check-label ms-4">
+                                        <span class="mb-0 h6">3. Simulations</span>
+                                        <small class="text-body d-block">interactive practice</small>
+                                    </label>
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

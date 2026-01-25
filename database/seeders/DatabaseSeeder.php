@@ -56,7 +56,8 @@ class DatabaseSeeder extends Seeder
             $this->getLesson1Content(),
             'Introduction to Cybersecurity Quiz',
             80,
-            $this->getLesson1Questions()
+            $this->getLesson1Questions(),
+            true
         );
 
         // Lesson 2
@@ -69,7 +70,8 @@ class DatabaseSeeder extends Seeder
             $this->getLesson2Content(),
             'Social Engineering Fundamentals Quiz',
             80,
-            $this->getLesson2Questions()
+            $this->getLesson2Questions(),
+            true
         );
 
         // Lesson 3
@@ -82,7 +84,8 @@ class DatabaseSeeder extends Seeder
             $this->getLesson3Content(),
             'Phishing, Smishing, and Vishing Quiz',
             80,
-            $this->getLesson3Questions()
+            $this->getLesson3Questions(),
+            true
         );
 
         // Lesson 4
@@ -216,7 +219,7 @@ class DatabaseSeeder extends Seeder
         );
     }
 
-    private function createLesson($prerequisiteId, $title, $description, $time, $difficulty, $content, $quizTitle, $passingScore, $questions): void
+    private function createLesson($prerequisiteId, $title, $description, $time, $difficulty, $content, $quizTitle, $passingScore, $questions, $hasSimulation=false): void
     {
         $lesson = Lesson::factory()->create([
             'image_path' => '',
@@ -227,6 +230,7 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
             'prerequisite_lesson_id' => $prerequisiteId,
             'content' => $content,
+            'has_simulation' => $hasSimulation,
         ]);
 
         $quiz = Quiz::factory()->create([

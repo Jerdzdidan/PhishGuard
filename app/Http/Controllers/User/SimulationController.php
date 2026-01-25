@@ -18,52 +18,31 @@ class SimulationController extends Controller
     private function getSimulationConfig($lessonId)
     {
         $configs = [
-            1 => [ // Lesson 1 simulations
+            1 => [ // Lesson 1 - ONE simulation with 5 diverse scenarios
                 [
-                    'id' => 'sim-1',
-                    'title' => 'GCash Phishing Detection',
-                    'description' => 'Learn to identify phishing attempts through SMS and email',
+                    'id' => 'lesson-1-sim',
+                    'title' => 'Phishing & Online Scams Detection',
+                    'description' => 'Learn to identify various types of phishing attempts and online scams',
                     'total_scenarios' => 5,
-                    'view' => 'user.simulations.lesson-1-sim-1'
-                ],
-                [
-                    'id' => 'sim-2',
-                    'title' => 'Fake Bank Website',
-                    'description' => 'Identify fake banking websites and protect your credentials',
-                    'total_scenarios' => 5,
-                    'view' => 'user.simulations.lesson-1-sim-2'
-                ],
-                [
-                    'id' => 'sim-3',
-                    'title' => 'Marketplace Scam',
-                    'description' => 'Avoid online marketplace scams and fraudulent sellers',
-                    'total_scenarios' => 5,
-                    'view' => 'user.simulations.lesson-1-sim-3'
+                    'view' => 'user.simulations.lesson-1-simulation'
                 ]
             ],
-            2 => [ // Lesson 2 simulations
+            2 => [ // Lesson 2 - ONE simulation
                 [
-                    'id' => 'sim-1',
-                    'title' => 'Job Offer Scam Detection',
-                    'description' => 'Identify fake job offers and employment scams',
-                    'total_scenarios' => 4,
-                    'view' => 'user.simulations.lesson-2-sim-1'
-                ],
-                [
-                    'id' => 'sim-2',
-                    'title' => 'Public WiFi Safety',
-                    'description' => 'Learn safe practices when using public WiFi networks',
-                    'total_scenarios' => 3,
-                    'view' => 'user.simulations.lesson-2-sim-2'
+                    'id' => 'lesson-2-sim',
+                    'title' => 'Advanced Threat Recognition',
+                    'description' => 'Identify sophisticated scams and security threats',
+                    'total_scenarios' => 5,
+                    'view' => 'user.simulations.lesson-2-simulation'
                 ]
             ],
-            3 => [ // Lesson 3 simulations
+            3 => [ // Lesson 3 - ONE simulation
                 [
-                    'id' => 'sim-1',
-                    'title' => 'Password Security',
-                    'description' => 'Create strong passwords and manage them securely',
-                    'total_scenarios' => 4,
-                    'view' => 'user.simulations.lesson-3-sim-1'
+                    'id' => 'lesson-3-sim',
+                    'title' => 'Password & Account Security',
+                    'description' => 'Practice secure password management and account protection',
+                    'total_scenarios' => 5,
+                    'view' => 'user.simulations.lesson-3-simulation'
                 ]
             ]
         ];
@@ -92,9 +71,17 @@ class SimulationController extends Controller
             }
 
             $simulations = $this->getSimulationConfig($lessonId);
-            $progress = $lesson->getStudentProgress();
+            
+            // Since we only have 1 simulation per lesson now, redirect directly to it
+            if (count($simulations) === 1) {
+                return redirect()->route('lessons.simulations.show', [
+                    'id' => $id,
+                    'simId' => $simulations[0]['id']
+                ]);
+            }
 
-            // Get user's attempts for each simulation
+            // Fallback if multiple simulations (shouldn't happen with new structure)
+            $progress = $lesson->getStudentProgress();
             $attempts = [];
             foreach ($simulations as $sim) {
                 $attempts[$sim['id']] = SimulationAttempt::where('user_id', Auth::id())

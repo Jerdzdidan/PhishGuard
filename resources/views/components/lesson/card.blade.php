@@ -64,29 +64,44 @@
                     $progressPercent = 0;
                     
                     if ($progress) {
-                        // Calculate progress based on lesson requirements
-                        $hasQuiz = $lesson->quiz && $lesson->quiz->is_active;
+                        $requirements = [];
+                        $completed = [];
                         
-                        if (!$hasQuiz && $progress->content_viewed) {
-                            // No quiz - just need to view content
-                            $progressPercent = 100;
-                        } elseif ($hasQuiz) {
-                            // Has quiz - need both content viewed and quiz passed
-                            if ($progress->content_viewed && $progress->quiz_passed) {
-                                $progressPercent = 100;
-                            } elseif ($progress->content_viewed) {
-                                $progressPercent = 50;
+                        // Content is always required
+                        $requirements[] = 'content';
+                        if ($progress->content_viewed) {
+                            $completed[] = 'content';
+                        }
+                        
+                        // Quiz if active
+                        if ($lesson->quiz && $lesson->quiz->is_active) {
+                            $requirements[] = 'quiz';
+                            if ($progress->quiz_passed) {
+                                $completed[] = 'quiz';
                             }
+                        }
+                        
+                        // Simulations if enabled
+                        if ($lesson->has_simulation) {
+                            $requirements[] = 'simulation';
+                            if ($progress->simulations_completed) {
+                                $completed[] = 'simulation';
+                            }
+                        }
+                        
+                        // Calculate percentage
+                        if (count($requirements) > 0) {
+                            $progressPercent = round((count($completed) / count($requirements)) * 100);
                         }
                     }
                 @endphp
                 <div class="progress mb-4" style="height: 8px">
                     <div class="progress-bar {{ $progressPercent === 100 ? 'bg-success' : '' }}" 
-                         role="progressbar" 
-                         style="width: {{ $progressPercent }}%" 
-                         aria-valuenow="{{ $progressPercent }}" 
-                         aria-valuemin="0" 
-                         aria-valuemax="100">
+                        role="progressbar" 
+                        style="width: {{ $progressPercent }}%" 
+                        aria-valuenow="{{ $progressPercent }}" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
                     </div>
                 </div>
             @else

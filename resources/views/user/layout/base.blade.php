@@ -48,6 +48,7 @@
     <!-- Page CSS -->
     
     <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/css/pages/app-academy.css') }}" />
+    @yield('style')
 
     <!-- Helpers -->
     <script src="{{ asset('themes/sneat/assets/vendor/js/helpers.js') }}"></script>
