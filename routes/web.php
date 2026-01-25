@@ -45,6 +45,14 @@ Route::prefix('')->middleware('auth')->group(function () {
             Route::get('results/{id}/{attempt}', [UserQuizController::class, 'results'])->name('results');
             Route::get('retake/{id}', [UserQuizController::class, 'retake'])->name('retake');
         });
+
+        Route::prefix('simulations')->name('simulations.')->group(function() {
+            Route::get('{id}', [SimulationController::class, 'index'])->name('index');
+            Route::get('{id}/{simId}', [SimulationController::class, 'show'])->name('show');
+            Route::post('{id}/{simId}/start', [SimulationController::class, 'start'])->name('start');
+            Route::post('{id}/{simId}/submit', [SimulationController::class, 'submit'])->name('submit');
+            Route::get('{id}/{simId}/results/{attempt}', [SimulationController::class, 'results'])->name('results');
+        });
     });
 });
 

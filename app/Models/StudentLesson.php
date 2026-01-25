@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentLesson extends Model
 {
-    use HasFactory;
+     use HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -15,6 +15,8 @@ class StudentLesson extends Model
         'is_unlocked',
         'content_viewed',
         'quiz_passed',
+        'simulations_completed',
+        'simulation_progress',
         'best_score',
         'completed_at'
     ];
@@ -23,6 +25,7 @@ class StudentLesson extends Model
         'is_unlocked' => 'boolean',
         'content_viewed' => 'boolean',
         'quiz_passed' => 'boolean',
+        'simulations_completed' => 'boolean',
         'completed_at' => 'datetime'
     ];
 
@@ -41,13 +44,28 @@ class StudentLesson extends Model
      */
     public function isCompleted(): bool
     {
-        // If lesson has no quiz, just need to view content
-        if (!$this->lesson->quiz || !$this->lesson->quiz->is_active) {
-            return $this->content_viewed;
+        $lesson = $this->lesson;
+        
+        // Must view content
+        if (!$this->content_viewed) {
+            return false;
         }
 
-        // If lesson has quiz, need to view content AND pass quiz
-        return $this->content_viewed && $this->quiz_passed;
+        // If lesson has quiz, must pass it
+        if ($lesson->quiz && $lesson->quiz->is_active) {
+            if (!$this->quiz_passed) {
+                return false;
+            }
+        }
+
+        // If lesson has simulations, must complete them
+        if ($lesson->has_simulation) {
+            if (!$this->simulations_completed) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
