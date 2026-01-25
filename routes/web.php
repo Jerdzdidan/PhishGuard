@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\QuizController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\User\CourseAppController;
@@ -74,5 +75,22 @@ Route::prefix('admin')->middleware('auth')->name('admin.')->group(function () {
             Route::delete('destroy/{id}', [QuizController::class, 'destroyQuestion'])->name('destroy');
             Route::post('re-order', [QuizController::class, 'reorderQuestions'])->name('reorder');
         });
+    });
+
+    // USER MANAGEMENT
+    Route::prefix('users')->name('users.')->group(function() {
+        Route::get('', [UserController::class, 'index'])->name('index');
+
+        Route::get('data', [UserController::class, 'getData'])->name('data');
+        Route::get('stats', [UserController::class, 'getStats'])->name('stats');
+        
+        Route::post('store', [UserController::class, 'store'])->name('store');
+
+        Route::get('edit/{id}', [UserController::class, 'edit'])->name('edit');
+        Route::put('update/{id}', [UserController::class, 'update'])->name('update');
+
+        Route::delete('destroy/{id}', [UserController::class, 'destroy'])->name('destroy');
+
+        Route::post('toggle/{id}', [UserController::class, 'toggle'])->name('toggle');
     });
 });

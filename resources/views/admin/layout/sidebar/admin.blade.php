@@ -14,6 +14,6 @@
     <span class="menu-header-text">Management</span>
 </li>
 
-<x-sidebar.item route='#' name='Users' icon='menu-icon tf-icons bx bxs-user' />
+<x-sidebar.item route='admin.users.index' name='Users' icon='menu-icon tf-icons bx bxs-user' />
 
 @endsection
