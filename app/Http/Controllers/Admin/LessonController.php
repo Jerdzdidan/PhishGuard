@@ -74,7 +74,8 @@ class LessonController extends Controller
             'content' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'is_active' => 'nullable|boolean',
-            'prerequisite_lesson_id' => 'nullable|exists:lessons,id'
+            'prerequisite_lesson_id' => 'nullable|exists:lessons,id',
+            'has_simulation' => 'nullable|boolean',
         ]);
 
         $lesson = Lesson::findOrFail($lessonId);
@@ -117,6 +118,7 @@ class LessonController extends Controller
 
         // Handle checkbox - if not checked, it won't be in request
         $validated['is_active'] = $request->has('is_active') ? 1 : 0;
+        $validated['has_simulation'] = $request->has('has_simulation') ? 1 : 0;
 
         $lesson->update($validated);
 

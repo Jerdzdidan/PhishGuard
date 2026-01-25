@@ -293,6 +293,25 @@ body:not(.edit-mode-active) .inline-edit-field {
                                     </small>
                                 </div>
                             </div>
+                            <div id="simulationSection" class="d-none">
+                                <hr>
+                                <div class="ms-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" 
+                                            type="checkbox" 
+                                            name="has_simulation" 
+                                            id="hasSimulation"
+                                            value="1"
+                                            {{ $lesson->has_simulation ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="hasSimulation">
+                                            Enable Simulations
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">
+                                        When enabled, students must complete interactive simulations before proceeding
+                                    </small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -344,7 +363,8 @@ $(document).ready(function() {
             $('body').addClass('edit-mode-active');
             $editControls.removeClass('d-none');
             $activeStatusSection.removeClass('d-none');
-            $prerequisiteSection.removeClass('d-none'); // Add this
+            $prerequisiteSection.removeClass('d-none');
+            $('#simulationSection').removeClass('d-none'); // Add this line
             $toggleBtn.html('<i class="ri-eye-line me-2"></i> Preview Mode');
             $toggleBtn.removeClass('btn-primary').addClass('btn-label-secondary');
         } else {
@@ -378,6 +398,7 @@ $(document).ready(function() {
         $editControls.addClass('d-none');
         $activeStatusSection.addClass('d-none');
         $prerequisiteSection.addClass('d-none'); // Add this
+        $('#simulationSection').addClass('d-none'); 
         $toggleBtn.html('<i class="ri-edit-box-line me-2"></i> Edit Lesson');
         $toggleBtn.addClass('btn-primary').removeClass('btn-label-secondary');
         

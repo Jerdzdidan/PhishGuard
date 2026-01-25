@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\User\CourseAppController;
+use App\Http\Controllers\User\SimulationController;
 use App\Http\Controllers\User\UserLessonController;
 use App\Http\Controllers\User\UserQuizController;
 use Illuminate\Support\Facades\Route;

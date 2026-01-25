@@ -18,7 +18,8 @@ class Lesson extends Model
         'time',
         'content',
         'is_active',
-        'prerequisite_lesson_id'
+        'prerequisite_lesson_id',
+        'has_simulation'
     ];
 
     protected $casts = [
