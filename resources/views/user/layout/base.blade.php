@@ -78,7 +78,7 @@
       <span class="">
         <img src="{{ asset('img/landing/logo.png') }}" alt="" style="width: 40px; height: auto; max-width: 100%;">
       </span>
-      <span class="app-brand-text demo text-dark menu-text fw-bold ms-2 ps-1">PhishGuard</span>
+      <span class="app-brand-text demo text-dark menu-text fw-bold ms-2 ps-1">CyberWais</span>
     </a>
 
   </div>

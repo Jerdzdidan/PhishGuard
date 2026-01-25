@@ -12,7 +12,7 @@
         <span class="mt-0">
             <img src="{{ asset('img/landing/logo.png') }}" alt="" class="mt-0" style="width: 40px; height: auto; max-width: 100%;">
         </span>
-        <span class="app-brand-text demo text-dark menu-text fw-bold ms-1 ps-1 mt-0">PhishGuard</span>
+        <span class="app-brand-text demo text-dark menu-text fw-bold ms-1 ps-1 mt-0">CyberWais</span>
         </a>
     </div>
 

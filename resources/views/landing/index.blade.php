@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
 
-    <title>PhishGuard</title>
+    <title>CyberWais</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('img/logo/logo-white-bg.png') }}" />
@@ -70,7 +70,7 @@
           <span class="">
             <img src="{{ asset('img/landing/logo.png') }}" alt="" style="width: 40px; height: auto; max-width: 100%;">
           </span>
-          <span class="app-brand-text demo menu-text fw-bold ms-2 ps-1">PhishGuard</span>
+          <span class="app-brand-text demo menu-text fw-bold ms-2 ps-1">CyberWais</span>
         </a>
       </div>
       <!-- Menu logo wrapper: End -->
@@ -325,7 +325,7 @@
       </span>
     </h4>
     <p class="text-center mb-12 pb-md-4">
-      Browse through these FAQs to learn more about PhishGuard and how our cybersecurity learning platform works.
+      Browse through these FAQs to learn more about CyberWais and how our cybersecurity learning platform works.
     </p>
 
     <div class="row gy-12 align-items-center">
@@ -342,12 +342,12 @@
           <div class="card accordion-item">
             <h2 class="accordion-header" id="headingOne">
               <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionOne">
-                What cybersecurity topics are covered in PhishGuard?
+                What cybersecurity topics are covered in CyberWais?
               </button>
             </h2>
             <div id="accordionOne" class="accordion-collapse collapse">
               <div class="accordion-body">
-                PhishGuard covers essential and practical cybersecurity topics such as phishing detection and prevention, email security, password hygiene and multi-factor authentication (MFA), social engineering awareness, malware basics, safe internet browsing, data privacy, and incident response fundamentals.  
+                CyberWais covers essential and practical cybersecurity topics such as phishing detection and prevention, email security, password hygiene and multi-factor authentication (MFA), social engineering awareness, malware basics, safe internet browsing, data privacy, and incident response fundamentals.  
                 Our content is designed for beginners, students, employees, and aspiring cybersecurity professionals through interactive lessons, simulations, quizzes, and real-world scenarios.
               </div>
             </div>
@@ -363,7 +363,7 @@
             <div id="accordionTwo" class="accordion-collapse collapse">
               <div class="accordion-body">
                 Course duration varies depending on the topic. Short awareness modules can be completed in 20–30 minutes, while full learning paths or certification-style tracks may take 4–8 weeks.  
-                PhishGuard is fully self-paced, allowing learners to study anytime and progress based on their own schedule.
+                CyberWais is fully self-paced, allowing learners to study anytime and progress based on their own schedule.
               </div>
             </div>
           </div>
@@ -372,12 +372,12 @@
           <div class="card accordion-item active">
             <h2 class="accordion-header" id="headingThree">
               <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionThree">
-                Who is PhishGuard for?
+                Who is CyberWais for?
               </button>
             </h2>
             <div id="accordionThree" class="accordion-collapse collapse">
               <div class="accordion-body">
-                PhishGuard is designed for students, professionals, educators, and organizations that want to improve cybersecurity awareness and defensive skills. Whether you are a beginner learning online safety or an organization training staff against phishing attacks, PhishGuard adapts to different skill levels and learning goals.
+                CyberWais is designed for students, professionals, educators, and organizations that want to improve cybersecurity awareness and defensive skills. Whether you are a beginner learning online safety or an organization training staff against phishing attacks, CyberWais adapts to different skill levels and learning goals.
               </div>
             </div>
           </div>
@@ -391,7 +391,7 @@
             </h2>
             <div id="accordionFour" class="accordion-collapse collapse">
               <div class="accordion-body">
-                No prior cybersecurity knowledge is required. PhishGuard starts with fundamentals and gradually introduces more advanced concepts. Each course clearly indicates its difficulty level so learners can choose content appropriate to their background.
+                No prior cybersecurity knowledge is required. CyberWais starts with fundamentals and gradually introduces more advanced concepts. Each course clearly indicates its difficulty level so learners can choose content appropriate to their background.
               </div>
             </div>
           </div>
@@ -400,12 +400,12 @@
           <div class="card accordion-item">
             <h2 class="accordion-header" id="headingFive">
               <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionFive">
-                Can I access PhishGuard on any device?
+                Can I access CyberWais on any device?
               </button>
             </h2>
             <div id="accordionFive" class="accordion-collapse collapse">
               <div class="accordion-body">
-                Yes. PhishGuard is a web-based learning platform that works on desktops, laptops, tablets, and mobile devices. All you need is a modern browser and an internet connection to access courses, quizzes, and interactive labs.
+                Yes. CyberWais is a web-based learning platform that works on desktops, laptops, tablets, and mobile devices. All you need is a modern browser and an internet connection to access courses, quizzes, and interactive labs.
               </div>
             </div>
           </div>
@@ -434,7 +434,7 @@
             document.write(new Date().getFullYear());
           </script>
         </span>
-        <a href="{{ route('landing.index') }}" class="text-white">PhishGuard,</a>
+        <a href="{{ route('landing.index') }}" class="text-white">CyberWais,</a>
         <span class="footer-bottom-text"> Made with passion for learning.</span>
       </div>
       <div>

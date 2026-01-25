@@ -165,7 +165,7 @@ QUIZ - {{ $lesson->title }}
                         <div class="mb-4">
                             <a href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}">
                                 <label class="form-check-label ms-4">
-                                    <span class="mb-0 h6 text-primary">1. Lesson</span>
+                                    <span class="mb-0 h6">1. Lesson</span>
                                     <small class="text-body d-block">content</small>
                                 </label>
                             </a>
@@ -174,7 +174,7 @@ QUIZ - {{ $lesson->title }}
                             <hr>
                             <div class="mb-4">
                                 <label class="ms-4">
-                                    <span class="mb-0 h6">2. Quiz</span>
+                                    <span class="mb-0 h6 text-primary">2. Quiz</span>
                                     <small class="text-body d-block">assessment</small>
                                 </label>
                             </div>

@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
 
-      <title>PhishGuard - Login</title>
+      <title>CyberWais - Login</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('img/logo/logo-white-bg.png') }}" />
@@ -65,7 +65,7 @@
                   <img src="{{ asset('img/landing/logo.png') }}" alt="" style="width: 40px; height: auto; max-width: 100%;">
                 </span>
       </span>
-      <span class="app-brand-text demo text-heading fw-bold">PhishGuard</span>
+      <span class="app-brand-text demo text-heading fw-bold">CyberWais</span>
     </a>
     <!-- /Logo -->
     <div class="authentication-inner row m-0">
@@ -81,7 +81,7 @@
       <div class="d-flex col-12 col-lg-5 col-xl-4 align-items-center authentication-bg p-sm-12 p-6">
         <div class="w-px-400 mx-auto mt-sm-12 mt-8">
                 <div class="d-flex align-items-center">
-                    <h4 class="mb-1">Welcome to PhishGuard!</h4>
+                    <h4 class="mb-1">Welcome to CyberWais!</h4>
                     <img src="{{ asset('img/auth/hand.gif') }}" id="hand_gif" class="mb-2" alt="">
                 </div>
           <p class="mb-6">Please sign-in to your account and start learning!</p>
