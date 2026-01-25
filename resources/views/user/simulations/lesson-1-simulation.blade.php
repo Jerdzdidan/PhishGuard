@@ -459,10 +459,10 @@ $(document).ready(function() {
             `,
             question: "You received this SMS. What do you do?",
             actions: [
-                { text: "Click the link to verify my account", correct: false },
-                { text: "Ignore and check the official GCash app directly", correct: true },
-                { text: "Call the number back to confirm", correct: false },
-                { text: "Reply to ask if it's legitimate", correct: false }
+                { text: "Click the link to verify my account", safe: false },
+                { text: "Ignore and check the official GCash app directly", safe: true },
+                { text: "Call the number back to confirm", safe: false },
+                { text: "Reply to ask if it's legitimate", safe: false }
             ],
             feedback: {
                 correct: "✅ SAFE! You avoided a phishing scam! The URL 'gcash-verify.ph' is NOT official GCash. Always check the official app for account issues.",
@@ -501,10 +501,10 @@ $(document).ready(function() {
             `,
             question: "You clicked an email link and this page loaded. What do you do?",
             actions: [
-                { text: "Enter my login details to verify", correct: false },
-                { text: "Close immediately - this looks fake!", correct: true },
-                { text: "Check if it looks legitimate first", correct: false },
-                { text: "Use it but change password after", correct: false }
+                { text: "Enter my login details to verify", safe: false },
+                { text: "Close immediately - this looks fake!", safe: true },
+                { text: "Check if it looks legitimate first", safe: false },
+                { text: "Use it but change password after", safe: false }
             ],
             feedback: {
                 correct: "✅ EXCELLENT! You spotted a fake website! The URL 'bdo-online-secure.com' is NOT BDO's real website. Real BDO uses 'online.bdo.com.ph' with HTTPS.",
@@ -544,10 +544,10 @@ $(document).ready(function() {
             `,
             question: "This deal seems too good to be true. What do you do?",
             actions: [
-                { text: "Send the down payment immediately before someone else gets it", correct: false },
-                { text: "Insist on meetup only, no advance payment", correct: true },
-                { text: "Send only 25% as a compromise", correct: false },
-                { text: "Ask for more photos to verify", correct: false }
+                { text: "Send the down payment immediately before someone else gets it", safe: false },
+                { text: "Insist on meetup only, no advance payment", safe: true },
+                { text: "Send only 25% as a compromise", safe: false },
+                { text: "Ask for more photos to verify", safe: false }
             ],
             feedback: {
                 correct: "✅ SMART! Never send advance payments to strangers. Legitimate sellers accept payment upon meetup and inspection only.",
@@ -582,10 +582,10 @@ $(document).ready(function() {
             `,
             question: "You don't remember applying, but this job looks great. What do you do?",
             actions: [
-                { text: "Pay the training fee to secure the position", correct: false },
-                { text: "Research the company and verify legitimacy first", correct: true },
-                { text: "Send ID copies to secure the position", correct: false },
-                { text: "Share the opportunity with friends", correct: false }
+                { text: "Pay the training fee to secure the position", safe: false },
+                { text: "Research the company and verify legitimacy first", safe: true },
+                { text: "Send ID copies to secure the position", safe: false },
+                { text: "Share the opportunity with friends", safe: false }
             ],
             feedback: {
                 correct: "✅ WISE! Legitimate employers NEVER charge application or training fees. Always research companies thoroughly before sharing personal info or paying.",
@@ -617,10 +617,10 @@ $(document).ready(function() {
             `,
             question: "You need to do urgent online banking. What's the SAFEST option?",
             actions: [
-                { text: "Connect to the free WiFi and do banking quickly", correct: false },
-                { text: "Use my mobile data instead for banking", correct: true },
-                { text: "Use incognito/private browsing mode for safety", correct: false },
-                { text: "Connect but change my password immediately after", correct: false }
+                { text: "Connect to the free WiFi and do banking quickly", safe: false },
+                { text: "Use my mobile data instead for banking", safe: true },
+                { text: "Use incognito/private browsing mode for safety", safe: false },
+                { text: "Connect but change my password immediately after", safe: false }
             ],
             feedback: {
                 correct: "✅ SECURE! Using mobile data is the safest option for banking transactions. Public WiFi can expose your credentials to hackers on the same network.",
@@ -706,18 +706,16 @@ $(document).ready(function() {
             scenario: scenarioIndex,
             action_selected: actionIndex,
             timestamp: Date.now() - startTime,
-            correct: action.correct
+            safe: action.safe
         });
 
-        // Track scenario result with correct flag
-        const isCorrect = action.correct;
         scenarioResults.push({
             scenario: scenario.name,
-            correct: isCorrect,
+            correct: action.safe,
             selected_action: action.text
         });
 
-        if (isCorrect) {
+        if (action.safe) {
             score++;
             Swal.fire({
                 icon: 'success',

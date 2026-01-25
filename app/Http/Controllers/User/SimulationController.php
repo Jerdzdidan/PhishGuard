@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class SimulationController extends Controller
 {
+    /**
+     * Get simulation configurations for each lesson
+     */
     private function getSimulationConfig($lessonId)
     {
         $configs = [
@@ -99,6 +102,7 @@ class SimulationController extends Controller
 
     /**
      * Show specific simulation
+     * If user has already completed this simulation, show their last attempt results instead
      */
     public function show($id, $simId)
     {
@@ -139,6 +143,29 @@ class SimulationController extends Controller
                 if (!$previousAttempt) {
                     return redirect()->route('lessons.simulations.index', $id)
                         ->with('error', 'Complete the previous simulation first.');
+                }
+            }
+
+            // Check if this is a retake (session flag set)
+            if (session()->has('allow_retake')) {
+                session()->forget('allow_retake');
+                // Allow them to take simulation again
+            } else {
+                // Check if user has already attempted this simulation (get latest attempt only)
+                $latestAttempt = SimulationAttempt::where('user_id', Auth::id())
+                    ->where('lesson_id', $lessonId)
+                    ->where('simulation_id', $simId)
+                    ->where('completed_at', '!=', null)
+                    ->latest()
+                    ->first();
+
+                if ($latestAttempt) {
+                    // Redirect to results page if valid attempt exists
+                    return redirect()->route('lessons.simulations.results', [
+                        'id' => $id,
+                        'simId' => $simId,
+                        'attempt' => Crypt::encryptString($latestAttempt->id)
+                    ]);
                 }
             }
 
@@ -287,6 +314,37 @@ class SimulationController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('user.home')
                 ->with('error', 'Results not found.');
+        }
+    }
+
+    /**
+     * Allow retaking a simulation
+     */
+    public function retake($id, $simId)
+    {
+        try {
+            $lessonId = Crypt::decryptString($id);
+            $lesson = Lesson::findOrFail($lessonId);
+
+            $simulations = $this->getSimulationConfig($lessonId);
+            $simulation = collect($simulations)->firstWhere('id', $simId);
+
+            if (!$simulation) {
+                return redirect()->route('user.home')
+                    ->with('error', 'Simulation not found.');
+            }
+
+            // Set session flag to allow retake (bypass latest attempt check)
+            session()->put('allow_retake', true);
+
+            return redirect()->route('lessons.simulations.show', [
+                'id' => $id,
+                'simId' => $simId
+            ]);
+
+        } catch (\Exception $e) {
+            return redirect()->route('user.home')
+                ->with('error', 'Unable to retake simulation.');
         }
     }
 }

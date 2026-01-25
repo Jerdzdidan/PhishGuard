@@ -53,6 +53,7 @@ Route::prefix('')->middleware('auth')->group(function () {
             Route::post('{id}/{simId}/start', [SimulationController::class, 'start'])->name('start');
             Route::post('{id}/{simId}/submit', [SimulationController::class, 'submit'])->name('submit');
             Route::get('{id}/{simId}/results/{attempt}', [SimulationController::class, 'results'])->name('results');
+            Route::get('{id}/{simId}/retake', [SimulationController::class, 'retake'])->name('retake');
         });
     });
 });

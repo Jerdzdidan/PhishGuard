@@ -4,6 +4,29 @@
 SIMULATION RESULTS - {{ $lesson->title }}
 @endsection
 
+@section('scripts')
+<script>
+$(document).ready(function() {
+    $('#retakeSimulationBtn').on('click', function() {
+        Swal.fire({
+            title: 'Retake Simulation?',
+            html: 'Are you sure you want to retake this simulation? Your current attempt will be saved, and a new attempt will be recorded.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Retake Simulation',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#696cff',
+            cancelButtonColor: '#91a8b3ff',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '{{ route("lessons.simulations.retake", [Crypt::encryptString($lesson->id), $simulation["id"]]) }}';
+            }
+        });
+    });
+});
+</script>
+@endsection
+
 @section('nav_title')
 SIMULATION RESULTS - {{ $lesson->title }}
 @endsection
@@ -144,22 +167,22 @@ SIMULATION RESULTS - {{ $lesson->title }}
 
                 <div class="card mt-4">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <a href="{{ route('lessons.simulations.index', Crypt::encryptString($lesson->id)) }}" 
                                class="btn btn-label-secondary">
                                 <i class="ri-arrow-left-line me-1"></i> Back to Simulations
                             </a>
-                            @if(!$passed)
-                                <a href="{{ route('lessons.simulations.show', ['id' => Crypt::encryptString($lesson->id), 'simId' => $simulation['id']]) }}" 
-                                   class="btn btn-primary">
-                                    <i class="ri-restart-line me-1"></i> Try Again
-                                </a>
-                            @else
-                                <a href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}" 
-                                   class="btn btn-primary">
-                                    <i class="ri-arrow-right-line me-1"></i> Back to Lesson
-                                </a>
-                            @endif
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-primary" id="retakeSimulationBtn">
+                                    <i class="ri-restart-line me-1"></i> Retake Simulation
+                                </button>
+                                @if($passed)
+                                    <a href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}" 
+                                       class="btn btn-primary">
+                                        <i class="ri-arrow-right-line me-1"></i> Continue
+                                    </a>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
