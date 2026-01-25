@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\DB;
 
 class SimulationController extends Controller
 {
-        /**
-     * Get simulation configurations for each lesson
-     */
     private function getSimulationConfig($lessonId)
     {
         $configs = [
@@ -215,6 +212,11 @@ class SimulationController extends Controller
 
             DB::beginTransaction();
 
+            // Determine if passed (70% or higher)
+            $totalScenarios = count($validated['scenario_results']);
+            $percentage = $totalScenarios > 0 ? round(($validated['score'] / $totalScenarios) * 100) : 0;
+            $passed = $percentage >= 70;
+
             $attempt->update([
                 'completed_at' => now(),
                 'score' => $validated['score'],
@@ -227,38 +229,21 @@ class SimulationController extends Controller
             $lesson = Lesson::findOrFail($lessonId);
             $progress = $lesson->getStudentProgress();
             
-            // Get all simulations for this lesson
-            $simulations = $this->getSimulationConfig($lessonId);
-            
-            // Count completed simulations
-            $completedCount = SimulationAttempt::where('user_id', Auth::id())
-                ->where('lesson_id', $lessonId)
-                ->whereNotNull('completed_at')
-                ->distinct('simulation_id')
-                ->count('simulation_id');
+            // Update simulation results (only count if passed)
+            $progress->updateSimulationResults($passed);
 
-            $progress->simulation_progress = $completedCount;
-            
-            // Mark all simulations complete if all are done
-            if ($completedCount >= count($simulations)) {
-                $progress->simulations_completed = true;
-                
-                // Check if lesson is now complete
-                if ($progress->isCompleted()) {
-                    $progress->completed_at = now();
-                    $lesson->unlockDependentLessons();
-                }
+            // If completed, unlock dependent lessons
+            if ($progress->isCompleted()) {
+                $lesson->unlockDependentLessons();
             }
-            
-            $progress->save();
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Simulation completed successfully',
-                'passed' => $attempt->isPassed(),
-                'percentage' => $attempt->getPercentage(),
+                'passed' => $passed,
+                'percentage' => $percentage,
                 'all_completed' => $progress->simulations_completed,
                 'redirect_url' => route('lessons.simulations.results', [
                     'id' => $id,

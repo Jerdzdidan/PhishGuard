@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentLesson extends Model
 {
-     use HasFactory;
+    use HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -41,6 +41,7 @@ class StudentLesson extends Model
 
     /**
      * Check if lesson is completed
+     * BOTH quiz AND simulation must be completed if they exist
      */
     public function isCompleted(): bool
     {
@@ -96,6 +97,24 @@ class StudentLesson extends Model
         // Mark quiz as passed if they passed
         if ($passed && !$this->quiz_passed) {
             $this->quiz_passed = true;
+        }
+
+        // Check if lesson is now completed
+        if ($this->isCompleted() && !$this->completed_at) {
+            $this->completed_at = now();
+        }
+
+        $this->save();
+    }
+
+    /**
+     * Update simulation results
+     */
+    public function updateSimulationResults(bool $passed): void
+    {
+        // Mark simulations as completed if they passed
+        if ($passed && !$this->simulations_completed) {
+            $this->simulations_completed = true;
         }
 
         // Check if lesson is now completed

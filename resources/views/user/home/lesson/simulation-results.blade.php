@@ -17,6 +17,10 @@ SIMULATION RESULTS - {{ $lesson->title }}
 .result-card.failed {
     border-left-color: #ea5455;
 }
+.result-card.incorrect {
+    border-left-color: #ffc107;
+    background: #fffbf0;
+}
 .score-summary {
     padding: 2rem;
     border-radius: 12px;
@@ -30,6 +34,21 @@ SIMULATION RESULTS - {{ $lesson->title }}
     background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
     border: 2px solid #ea5455;
 }
+.scenario-status {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.scenario-status.correct {
+    background: #d4edda;
+    color: #155724;
+}
+.scenario-status.incorrect {
+    background: #f8d7da;
+    color: #721c24;
+}
 </style>
 @endsection
 
@@ -38,9 +57,17 @@ SIMULATION RESULTS - {{ $lesson->title }}
     <div class="col-lg-8">
         <div class="card mb-4">
             <div class="card-body">
-                <div class="score-summary text-center {{ $simulationAttempt->isPassed() ? 'passed' : 'failed' }}">
+                @php
+                    $scenarioResults = $simulationAttempt->scenario_results;
+                    $correctCount = collect($scenarioResults)->where('correct', true)->count();
+                    $totalScenarios = count($scenarioResults);
+                    $percentage = $totalScenarios > 0 ? round(($correctCount / $totalScenarios) * 100) : 0;
+                    $passed = $percentage >= 70;
+                @endphp
+
+                <div class="score-summary text-center {{ $passed ? 'passed' : 'failed' }}">
                     <h3 class="mb-3">
-                        @if($simulationAttempt->isPassed())
+                        @if($passed)
                             <i class="ri-checkbox-circle-line me-2"></i>
                             Simulation Completed!
                         @else
@@ -48,10 +75,10 @@ SIMULATION RESULTS - {{ $lesson->title }}
                             Simulation Complete - Practice More
                         @endif
                     </h3>
-                    <div class="display-4 mb-3">{{ $simulationAttempt->getPercentage() }}%</div>
+                    <div class="display-4 mb-3">{{ $percentage }}%</div>
                     <p class="mb-0">
-                        You scored {{ $simulationAttempt->score }} out of {{ $simulationAttempt->total_scenarios }} scenarios correctly.
-                        @if($simulationAttempt->isPassed())
+                        You scored {{ $correctCount }} out of {{ $totalScenarios }} scenarios correctly.
+                        @if($passed)
                             Great job identifying cyber threats!
                         @else
                             You need 70% to pass. Review the scenarios and try again!
@@ -63,14 +90,14 @@ SIMULATION RESULTS - {{ $lesson->title }}
                     <div class="col-md-3">
                         <div class="border rounded p-3 text-center">
                             <h6 class="text-muted mb-1">Score</h6>
-                            <h4 class="mb-0">{{ $simulationAttempt->score }}/{{ $simulationAttempt->total_scenarios }}</h4>
+                            <h4 class="mb-0">{{ $correctCount }}/{{ $totalScenarios }}</h4>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="border rounded p-3 text-center">
                             <h6 class="text-muted mb-1">Percentage</h6>
-                            <h4 class="mb-0 {{ $simulationAttempt->isPassed() ? 'text-success' : 'text-danger' }}">
-                                {{ $simulationAttempt->getPercentage() }}%
+                            <h4 class="mb-0 {{ $passed ? 'text-success' : 'text-danger' }}">
+                                {{ $percentage }}%
                             </h4>
                         </div>
                     </div>
@@ -89,21 +116,23 @@ SIMULATION RESULTS - {{ $lesson->title }}
                 </div>
 
                 <h5 class="mb-3">Scenario Results</h5>
-                @foreach($simulationAttempt->scenario_results as $index => $result)
-                    <div class="card result-card {{ $result['correct'] ? '' : 'failed' }} mb-3">
+                @foreach($scenarioResults as $index => $result)
+                    <div class="card result-card {{ $result['correct'] ? '' : 'incorrect' }} mb-3">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
+                                <div class="flex-grow-1">
                                     <h6 class="mb-1">Scenario {{ $index + 1 }}: {{ $result['scenario'] }}</h6>
-                                    <p class="mb-0 text-muted">{{ $result['selected_action'] }}</p>
+                                    <p class="mb-0 text-muted">
+                                        <strong>Your Action:</strong> {{ $result['selected_action'] }}
+                                    </p>
                                 </div>
                                 <div>
                                     @if($result['correct'])
-                                        <span class="badge bg-success">
+                                        <span class="scenario-status correct">
                                             <i class="ri-check-line me-1"></i> Correct
                                         </span>
                                     @else
-                                        <span class="badge bg-danger">
+                                        <span class="scenario-status incorrect">
                                             <i class="ri-close-line me-1"></i> Incorrect
                                         </span>
                                     @endif
@@ -120,10 +149,15 @@ SIMULATION RESULTS - {{ $lesson->title }}
                                class="btn btn-label-secondary">
                                 <i class="ri-arrow-left-line me-1"></i> Back to Simulations
                             </a>
-                            @if(!$simulationAttempt->isPassed())
+                            @if(!$passed)
                                 <a href="{{ route('lessons.simulations.show', ['id' => Crypt::encryptString($lesson->id), 'simId' => $simulation['id']]) }}" 
                                    class="btn btn-primary">
                                     <i class="ri-restart-line me-1"></i> Try Again
+                                </a>
+                            @else
+                                <a href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}" 
+                                   class="btn btn-primary">
+                                    <i class="ri-arrow-right-line me-1"></i> Back to Lesson
                                 </a>
                             @endif
                         </div>
@@ -184,13 +218,13 @@ SIMULATION RESULTS - {{ $lesson->title }}
                 <h6 class="mb-3">{{ $simulation['title'] }}</h6>
                 <div class="d-flex justify-content-between mb-2">
                     <span>Status</span>
-                    <strong class="{{ $simulationAttempt->isPassed() ? 'text-success' : 'text-warning' }}">
-                        {{ $simulationAttempt->isPassed() ? 'Passed' : 'Not Passed' }}
+                    <strong class="{{ $passed ? 'text-success' : 'text-warning' }}">
+                        {{ $passed ? 'Passed' : 'Not Passed' }}
                     </strong>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span>Score</span>
-                    <strong>{{ $simulationAttempt->score }}/{{ $simulationAttempt->total_scenarios }}</strong>
+                    <strong>{{ $correctCount }}/{{ $totalScenarios }}</strong>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span>Passing Requirement</span>
@@ -200,12 +234,12 @@ SIMULATION RESULTS - {{ $lesson->title }}
                 @if($progress->simulations_completed)
                     <div class="alert alert-success mb-0">
                         <i class="ri-check-circle-line me-2"></i>
-                        <small>All simulations completed! You can proceed to the next lesson.</small>
+                        <small>Simulation passed! You can proceed to the next lesson.</small>
                     </div>
                 @else
                     <div class="alert alert-info mb-0">
                         <i class="ri-information-line me-2"></i>
-                        <small>Complete all simulations to unlock the next lesson.</small>
+                        <small>You need to achieve 70% to pass. Try again!</small>
                     </div>
                 @endif
             </div>
