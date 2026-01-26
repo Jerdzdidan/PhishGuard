@@ -103,4 +103,19 @@ Route::prefix('admin')->middleware('auth')->name('admin.')->group(function () {
 
         Route::post('toggle/{id}', [UserController::class, 'toggle'])->name('toggle');
     });
+
+    Route::prefix('analytics')->name('analytics.')->group(function() {
+        Route::get('overview', [App\Http\Controllers\Admin\AnalyticsController::class, 'overview'])->name('overview');
+        Route::get('quiz', [App\Http\Controllers\Admin\AnalyticsController::class, 'quizAnalytics'])->name('quiz');
+        Route::get('simulation', [App\Http\Controllers\Admin\AnalyticsController::class, 'simulationAnalytics'])->name('simulation');
+        Route::get('heatmap', [App\Http\Controllers\Admin\AnalyticsController::class, 'heatmap'])->name('heatmap');
+        Route::get('export', [App\Http\Controllers\Admin\AnalyticsController::class, 'export'])->name('export');
+    });
+
+    // USER PROGRESS
+    Route::prefix('user-progress')->name('user-progress.')->group(function() {
+        Route::get('', [App\Http\Controllers\Admin\UserProgressController::class, 'index'])->name('index');
+        Route::get('data', [App\Http\Controllers\Admin\UserProgressController::class, 'getData'])->name('data');
+        Route::get('show/{id}', [App\Http\Controllers\Admin\UserProgressController::class, 'show'])->name('show');
+    });
 });
