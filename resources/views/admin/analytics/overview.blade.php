@@ -18,7 +18,7 @@ ANALYTICS OVERVIEW
 }
 .chart-container {
     position: relative;
-    height: 400px;
+    height: 500px;
 }
 </style>
 @endsection
@@ -212,7 +212,7 @@ $(document).ready(function() {
         }],
         chart: {
             type: 'bar',
-            height: 350,
+            height: 500,
             toolbar: { show: false }
         },
         plotOptions: {
@@ -239,9 +239,9 @@ $(document).ready(function() {
         xaxis: {
             categories: lessonCompletionData.map(l => l.title),
             labels: {
-                rotate: -45,
+                rotate: -30,
                 style: {
-                    fontSize: '10px'
+                    fontSize: '9px'
                 }
             }
         },
@@ -327,51 +327,55 @@ $(document).ready(function() {
     simulationPassFailChart.render();
 
     // Time Spent Chart
-    const timeSpentData = @json($timeSpentPerLesson);
-    
-    const timeSpentChart = new ApexCharts(document.querySelector("#timeSpentChart"), {
-        series: [{
-            name: 'Avg. Time (minutes)',
-            data: timeSpentData.map(t => (t.avg_time_seconds / 60).toFixed(2))
-        }],
-        chart: {
-            type: 'bar',
-            height: 350,
-            toolbar: { show: false }
-        },
-        plotOptions: {
-            bar: {
-                horizontal: true,
-                borderRadius: 5
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: function (val) {
-                return val.toFixed(1) + " min";
-            }
-        },
-        xaxis: {
-            categories: timeSpentData.map(t => t.title),
-            title: {
-                text: 'Time (minutes)'
-            }
-        },
-        colors: ['#696cff'],
-        tooltip: {
-            y: {
-                formatter: function(val) {
-                    const hours = Math.floor(val / 60);
-                    const minutes = Math.floor(val % 60);
-                    const seconds = Math.floor((val % 1) * 60);
-                    return hours > 0 
-                        ? `${hours}h ${minutes}m ${seconds}s`
-                        : `${minutes}m ${seconds}s`;
-                }
+const timeSpentData = @json($timeSpentPerLesson);
+
+console.log('Raw data:', timeSpentData);
+console.log('Converted data:', timeSpentData.map(t => {
+    const converted = t.avg_time_seconds / 60;
+    console.log(`${t.title}: ${t.avg_time_seconds} seconds = ${converted} minutes`);
+    return parseFloat(converted.toFixed(2));
+}));
+
+const timeSpentChart = new ApexCharts(document.querySelector("#timeSpentChart"), {
+    series: [{
+        name: 'Avg. Time (minutes)',
+        data: timeSpentData.map(t => parseFloat((t.avg_time_seconds / 60).toFixed(2)))
+    }],
+    chart: {
+        type: 'bar',
+        height: 350,
+        toolbar: { show: false }
+    },
+    plotOptions: {
+        bar: {
+            horizontal: true,
+            borderRadius: 5
+        }
+    },
+    dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+            return val.toFixed(1) + " min";
+        }
+    },
+    xaxis: {
+        categories: timeSpentData.map(t => t.title),
+        title: {
+            text: 'Time (minutes)'
+        }
+    },
+    colors: ['#696cff'],
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                const minutes = Math.floor(val);
+                const seconds = Math.round((val % 1) * 60);
+                return `${minutes}m ${seconds}s`;
             }
         }
-    });
-    timeSpentChart.render();
+    }
+});
+timeSpentChart.render();
 });
 </script>
 @endsection

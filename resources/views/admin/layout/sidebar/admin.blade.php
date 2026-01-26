@@ -1,8 +1,8 @@
 @extends('admin.layout.sidebar.bar')
 
 @section('menu_items')
-
-<x-sidebar.item route='admin.home' name='Dashboard' icon='menu-icon tf-icons bx bxs-dashboard'/>
+{{-- 
+<x-sidebar.item route='admin.home' name='Dashboard' icon='menu-icon tf-icons bx bxs-dashboard'/> --}}
 
 <li class="menu-header small text-uppercase">
     <span class="menu-header-text">Core</span>
@@ -36,11 +36,11 @@
                 <div data-i18n="Simulation Analytics">Simulation Analytics</div>
             </a>
         </li>
-        <li class="menu-item {{ request()->routeIs('admin.analytics.heatmap') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('admin.analytics.heatmap') ? 'active' : '' }}">
             <a href="{{ route('admin.analytics.heatmap') }}" class="menu-link">
                 <div data-i18n="Difficulty Heatmap">Difficulty Heatmap</div>
             </a>
-        </li>
+        </li> --}}
     </ul>
 </li>
 

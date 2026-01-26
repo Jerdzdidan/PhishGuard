@@ -2570,17 +2570,16 @@ class DatabaseSeeder extends Seeder
             return true;
         }
 
-        // Determine number of attempts - most students pass within 1-2 attempts
+        // Determine number of attempts based on performance and difficulty
+        $difficultyMultiplier = $this->getDifficultyMultiplier($lesson->difficulty);
+        
         if ($performanceLevel <= 3) {
-            // Struggling: 2-3 attempts, 70% eventually pass
             $numAttempts = rand(2, 3);
             $willEventuallyPass = rand(1, 100) <= 70;
         } elseif ($performanceLevel <= 7) {
-            // Average: 1-2 attempts, 90% pass
             $numAttempts = rand(1, 2);
             $willEventuallyPass = rand(1, 100) <= 90;
         } else {
-            // Excellent: 1 attempt, 98% pass
             $numAttempts = 1;
             $willEventuallyPass = rand(1, 100) <= 98;
         }
@@ -2589,7 +2588,6 @@ class DatabaseSeeder extends Seeder
         $hasPassed = false;
 
         for ($attempt = 0; $attempt < $numAttempts; $attempt++) {
-            // Calculate score based on performance level with improvement per attempt
             $baseScore = $this->getQuizScore($performanceLevel, $attempt, $numAttempts, $willEventuallyPass);
             $score = min(100, max(0, $baseScore + rand(-5, 5)));
             
@@ -2603,11 +2601,13 @@ class DatabaseSeeder extends Seeder
                 $hasPassed = true;
             }
 
-            // Generate realistic answers data
             $answersData = $this->generateQuizAnswers($questions, $score);
             
-            // Calculate completion time (2-8 minutes)
-            $completionTime = $performanceLevel <= 3 ? rand(300, 480) : rand(120, 360);
+            // ✅ NEW: Base time on difficulty and performance level
+            $baseTime = $this->getQuizTimeByDifficulty($lesson->difficulty, $performanceLevel);
+            // Struggling students take longer
+            $timeVariation = $performanceLevel <= 3 ? rand(1.2, 1.5) : rand(0.8, 1.1);
+            $completionTime = (int)($baseTime * $timeVariation);
             
             $attemptDay = $currentDay + ($attempt * rand(1, 3));
             $startedAt = now()->subDays($attemptDay)->subSeconds($completionTime);
@@ -2623,13 +2623,11 @@ class DatabaseSeeder extends Seeder
                 'answers_data' => json_encode($answersData)
             ]);
 
-            // If passed, stop (95% stop after passing)
             if ($passed && rand(1, 100) <= 95) {
                 break;
             }
         }
 
-        // Update student lesson progress
         $studentLesson->best_score = $bestScore;
         $studentLesson->quiz_passed = $hasPassed;
         $studentLesson->save();
@@ -2637,12 +2635,8 @@ class DatabaseSeeder extends Seeder
         return $hasPassed;
     }
 
-    /**
-     * Create simulation attempts for a student
-     */
     private function createSimulationAttempts($student, $lesson, $studentLesson, $performanceLevel, $currentDay): bool
     {
-        // Simulation configurations
         $simConfigs = [
             1 => ['id' => 'lesson-1-sim', 'scenarios' => 5],
             2 => ['id' => 'lesson-2-sim', 'scenarios' => 5],
@@ -2654,7 +2648,6 @@ class DatabaseSeeder extends Seeder
             return true;
         }
 
-        // Most students pass simulations
         if ($performanceLevel <= 3) {
             $numAttempts = rand(2, 3);
             $willEventuallyPass = rand(1, 100) <= 75;
@@ -2669,24 +2662,20 @@ class DatabaseSeeder extends Seeder
         $hasPassed = false;
 
         for ($attempt = 1; $attempt <= $numAttempts; $attempt++) {
-            // Calculate success rate based on performance level and attempt
             if ($performanceLevel <= 3) {
-                $baseSuccessRate = 0.50 + ($attempt * 0.12); // 50%, 62%, 74%
+                $baseSuccessRate = 0.50 + ($attempt * 0.12);
             } elseif ($performanceLevel <= 7) {
-                $baseSuccessRate = 0.68 + ($attempt * 0.10); // 68%, 78%
+                $baseSuccessRate = 0.68 + ($attempt * 0.10);
             } else {
-                $baseSuccessRate = 0.82; // 82%+
+                $baseSuccessRate = 0.82;
             }
             
-            // If this is the last attempt and they should pass, boost success rate
             if ($attempt === $numAttempts && $willEventuallyPass && !$hasPassed) {
-                $baseSuccessRate = 0.80; // Ensure they pass
+                $baseSuccessRate = 0.80;
             }
             
-            // Generate scenario results
             $scenarioResults = $this->generateSimulationResults($config['scenarios'], $baseSuccessRate, $attempt);
             
-            // Calculate score
             $correctCount = collect($scenarioResults)->where('correct', true)->count();
             $percentage = ($correctCount / $config['scenarios']) * 100;
             $passed = $percentage >= 70;
@@ -2695,11 +2684,12 @@ class DatabaseSeeder extends Seeder
                 $hasPassed = true;
             }
 
-            // Generate click data
             $clickData = $this->generateClickData($config['scenarios']);
             
-            // Calculate time (30 seconds to 2 minutes per scenario)
-            $timeTaken = rand(30, 120) * $config['scenarios'];
+            // ✅ NEW: Base time on difficulty and performance level
+            // Harder lessons take longer, and struggling students take more time per scenario
+            $timePerScenario = $this->getSimTimeByDifficulty($lesson->difficulty, $performanceLevel);
+            $timeTaken = $timePerScenario * $config['scenarios'];
             
             $attemptDay = $currentDay + ($attempt * rand(1, 2));
             $startedAt = now()->subDays($attemptDay);
@@ -2718,17 +2708,76 @@ class DatabaseSeeder extends Seeder
                 'attempt_number' => $attempt
             ]);
 
-            // If passed, stop (90% stop after passing)
             if ($passed && rand(1, 100) <= 90) {
                 break;
             }
         }
 
-        // Update student lesson progress
         $studentLesson->simulations_completed = $hasPassed;
         $studentLesson->save();
         
         return $hasPassed;
+    }
+
+    // ✅ NEW HELPER METHODS
+
+    private function getDifficultyMultiplier($difficulty): float
+    {
+        return match($difficulty) {
+            'EASY' => 1.0,
+            'MEDIUM' => 1.5,
+            'HARD' => 2.0,
+            default => 1.0,
+        };
+    }
+
+    private function getQuizTimeByDifficulty($difficulty, $performanceLevel): int
+    {
+        // Base times in seconds
+        $baseTimes = [
+            'EASY' => 180,     // 3 minutes
+            'MEDIUM' => 300,   // 5 minutes
+            'HARD' => 480,     // 8 minutes
+        ];
+
+        $baseTime = $baseTimes[$difficulty] ?? 180;
+        
+        // Struggling students take 1.5-2x longer
+        if ($performanceLevel <= 3) {
+            $baseTime = (int)($baseTime * rand(150, 200) / 100);
+        }
+        // Average students take normal time
+        elseif ($performanceLevel <= 7) {
+            $baseTime = (int)($baseTime * rand(80, 120) / 100);
+        }
+        // Excellent students are faster
+        else {
+            $baseTime = (int)($baseTime * rand(60, 90) / 100);
+        }
+
+        return $baseTime;
+    }
+
+    private function getSimTimeByDifficulty($difficulty, $performanceLevel): int
+    {
+        // Time per scenario in seconds
+        $timePerScenario = match($difficulty) {
+            'EASY' => rand(30, 50),      // 30-50 seconds per scenario
+            'MEDIUM' => rand(45, 75),    // 45-75 seconds per scenario
+            'HARD' => rand(60, 90),      // 60-90 seconds per scenario
+            default => rand(40, 60),
+        };
+
+        // Struggling students take longer
+        if ($performanceLevel <= 3) {
+            $timePerScenario = (int)($timePerScenario * 1.3);
+        }
+        // Excellent students are faster
+        elseif ($performanceLevel >= 8) {
+            $timePerScenario = (int)($timePerScenario * 0.7);
+        }
+
+        return $timePerScenario;
     }
 
     /**

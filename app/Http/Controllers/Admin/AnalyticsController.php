@@ -87,15 +87,35 @@ class AnalyticsController extends Controller
             ->first();
 
         // Time spent per lesson
-        $timeSpentPerLesson = StudentLesson::whereNotNull('completed_at')
-            ->join('lessons', 'student_lessons.lesson_id', '=', 'lessons.id')
+        $timeSpentPerLesson = Lesson::where('is_active', true)
+            ->select('lessons.id', 'lessons.title')
             ->selectRaw('
-                lessons.id,
-                lessons.title,
-                AVG(TIMESTAMPDIFF(SECOND, student_lessons.created_at, student_lessons.completed_at)) as avg_time_seconds
+                (
+                    SELECT AVG(completion_time) 
+                    FROM user_quiz_attempts 
+                    JOIN quizzes ON user_quiz_attempts.quiz_id = quizzes.id 
+                    WHERE quizzes.lesson_id = lessons.id 
+                    AND user_quiz_attempts.completed_at IS NOT NULL
+                ) as quiz_time,
+                (
+                    SELECT AVG(time_taken) 
+                    FROM simulation_attempts 
+                    WHERE lesson_id = lessons.id 
+                    AND completed_at IS NOT NULL
+                ) as sim_time
             ')
-            ->groupBy('lessons.id', 'lessons.title')
-            ->get();
+            ->get()
+            ->map(function($lesson) {
+                $quizTime = $lesson->quiz_time ?? 0;
+                $simTime = $lesson->sim_time ?? 0;
+                $avgTime = ($quizTime + $simTime) / 2; // Average of both, or pick whichever exists
+                
+                return [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'avg_time_seconds' => $avgTime
+                ];
+            });
 
         return view('admin.analytics.overview', compact(
             'stats',
