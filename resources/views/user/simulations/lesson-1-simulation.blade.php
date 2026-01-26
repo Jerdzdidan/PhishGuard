@@ -502,9 +502,9 @@ $(document).ready(function() {
             question: "You clicked an email link and this page loaded. What do you do?",
             actions: [
                 { text: "Enter my login details to verify", safe: false },
-                { text: "Close immediately - this looks fake!", safe: true },
                 { text: "Check if it looks legitimate first", safe: false },
-                { text: "Use it but change password after", safe: false }
+                { text: "Use it but change password after", safe: false },
+                { text: "Close immediately - this looks fake!", safe: true },
             ],
             feedback: {
                 correct: "✅ EXCELLENT! You spotted a fake website! The URL 'bdo-online-secure.com' is NOT BDO's real website. Real BDO uses 'online.bdo.com.ph' with HTTPS.",
@@ -544,8 +544,8 @@ $(document).ready(function() {
             `,
             question: "This deal seems too good to be true. What do you do?",
             actions: [
-                { text: "Send the down payment immediately before someone else gets it", safe: false },
                 { text: "Insist on meetup only, no advance payment", safe: true },
+                { text: "Send the down payment immediately before someone else gets it", safe: false },
                 { text: "Send only 25% as a compromise", safe: false },
                 { text: "Ask for more photos to verify", safe: false }
             ],
@@ -618,8 +618,8 @@ $(document).ready(function() {
             question: "You need to do urgent online banking. What's the SAFEST option?",
             actions: [
                 { text: "Connect to the free WiFi and do banking quickly", safe: false },
-                { text: "Use my mobile data instead for banking", safe: true },
                 { text: "Use incognito/private browsing mode for safety", safe: false },
+                { text: "Use my mobile data instead for banking", safe: true },
                 { text: "Connect but change my password immediately after", safe: false }
             ],
             feedback: {
