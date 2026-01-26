@@ -14,7 +14,7 @@ use Yajra\DataTables\DataTables;
 
 class UserProgressController extends Controller
 {
-       /**
+     /**
      * User Progress List
      */
     public function index()
@@ -66,6 +66,23 @@ class UserProgressController extends Controller
             ->editColumn('id', function ($user) {
                 return Crypt::encryptString($user->id);
             })
+            ->editColumn('created_at', function ($user) {
+                return $user->created_at->format('Y-m-d H:i:s');
+            })
+            ->orderColumn('lessons_completed', function ($query, $order) {
+                // Custom ordering for lessons completed
+                $query->withCount(['studentLessons as completed_count' => function($q) {
+                    $q->whereNotNull('completed_at');
+                }])->orderBy('completed_count', $order);
+            })
+            ->filterColumn('quiz_avg', function($query, $keyword) {
+                // Allow filtering by quiz average
+                // This is optional - you can remove if not needed
+            })
+            ->filterColumn('simulation_avg', function($query, $keyword) {
+                // Allow filtering by simulation average
+                // This is optional - you can remove if not needed
+            })
             ->rawColumns(['actions'])
             ->make(true);
     }
@@ -102,6 +119,7 @@ class UserProgressController extends Controller
         // Get quiz attempts
         $quizAttempts = UserQuizAttempt::where('user_id', $userId)
             ->with('quiz.lesson')
+            ->whereNotNull('completed_at')
             ->orderBy('completed_at', 'desc')
             ->get();
 

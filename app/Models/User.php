@@ -47,4 +47,64 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get all student lesson progress records for this user
+     */
+    public function studentLessons()
+    {
+        return $this->hasMany(StudentLesson::class);
+    }
+
+    /**
+     * Get all quiz attempts for this user
+     */
+    public function quizAttempts()
+    {
+        return $this->hasMany(UserQuizAttempt::class);
+    }
+
+    /**
+     * Get all simulation attempts for this user
+     */
+    public function simulationAttempts()
+    {
+        return $this->hasMany(SimulationAttempt::class);
+    }
+
+    /**
+     * Get completed lessons count
+     */
+    public function completedLessonsCount()
+    {
+        return $this->studentLessons()->whereNotNull('completed_at')->count();
+    }
+
+    /**
+     * Get average quiz score
+     */
+    public function averageQuizScore()
+    {
+        return $this->quizAttempts()
+            ->whereNotNull('completed_at')
+            ->avg('score');
+    }
+
+    /**
+     * Get average simulation score
+     */
+    public function averageSimulationScore()
+    {
+        $attempts = $this->simulationAttempts()
+            ->whereNotNull('completed_at')
+            ->get();
+        
+        if ($attempts->isEmpty()) {
+            return null;
+        }
+        
+        return $attempts->avg(function($attempt) {
+            return ($attempt->score / $attempt->total_scenarios) * 100;
+        });
+    }
 }

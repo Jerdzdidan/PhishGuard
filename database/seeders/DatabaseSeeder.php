@@ -6,9 +6,13 @@ use App\Models\Answer;
 use App\Models\Lesson;
 use App\Models\Question;
 use App\Models\Quiz;
+use App\Models\SimulationAttempt;
+use App\Models\StudentLesson;
 use App\Models\User;
+use App\Models\UserQuizAttempt;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -23,6 +27,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->createUsers();
         $this->createLessonsAndQuizzes();
+
+        $students = $this->createStudents(50);
+        
+        // Get all active lessons
+        $lessons = Lesson::where('is_active', true)->get();
+        
+        // Create realistic progress for each student
+        foreach ($students as $student) {
+            $this->createStudentProgress($student, $lessons);
+        }
     }
 
     private function createUsers(): void
@@ -2421,5 +2435,468 @@ class DatabaseSeeder extends Seeder
                 ['text' => 'Avoid cooperation', 'correct' => false, 'explanation' => 'Incorrect: Promote cooperation.'],
             ]],
         ];
+    }
+
+    private function createStudents(int $count): array
+    {
+        $students = [];
+        $firstNames = ['James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda', 
+                       'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica',
+                       'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa',
+                       'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra', 'Donald', 'Ashley',
+                       'Steven', 'Kimberly', 'Paul', 'Emily', 'Andrew', 'Donna', 'Joshua', 'Michelle',
+                       'Kenneth', 'Carol', 'Kevin', 'Amanda', 'Brian', 'Dorothy', 'George', 'Melissa',
+                       'Timothy', 'Deborah', 'Ronald', 'Stephanie', 'Edward', 'Rebecca', 'Jason', 'Sharon'];
+        
+        $lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+                      'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas',
+                      'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White',
+                      'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young',
+                      'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores',
+                      'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell'];
+
+        for ($i = 0; $i < $count; $i++) {
+            $firstName = $firstNames[array_rand($firstNames)];
+            $lastName = $lastNames[array_rand($lastNames)];
+            
+            $student = User::create([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => strtolower($firstName . '.' . $lastName . ($i + 1) . '@example.com'),
+                'user_type' => 'USER',
+                'password' => Hash::make('password'),
+                'status' => true,
+                'created_at' => now()->subDays(rand(1, 90))
+            ]);
+            
+            $students[] = $student;
+        }
+
+        return $students;
+    }
+
+    /**
+     * Create realistic student progress
+     */
+    private function createStudentProgress($student, $lessons): void
+    {
+        // Determine student performance level (affects completion rate and scores)
+        $performanceLevel = rand(1, 10); // 1-3: struggling, 4-7: average, 8-10: excellent
+        
+        // Determine how far the student has progressed
+        $progressPercentage = $this->getProgressPercentage($performanceLevel);
+        $lessonsToAttempt = (int) ceil($lessons->count() * $progressPercentage);
+        
+        $completedLessons = 0;
+        $currentDay = rand(1, 60); // Starting day for this student's progress
+        
+        foreach ($lessons as $index => $lesson) {
+            if ($index >= $lessonsToAttempt) {
+                break;
+            }
+
+            // Check if prerequisite is completed (for sequential lessons)
+            if ($lesson->prerequisite_lesson_id) {
+                $prerequisiteProgress = StudentLesson::where('user_id', $student->id)
+                    ->where('lesson_id', $lesson->prerequisite_lesson_id)
+                    ->first();
+                
+                // If prerequisite not completed, stop here
+                if (!$prerequisiteProgress || !$prerequisiteProgress->completed_at) {
+                    break;
+                }
+            }
+
+            // First lesson is always unlocked, others unlock after completing prerequisite
+            $isUnlocked = $lesson->prerequisite_lesson_id === null || $completedLessons > 0;
+
+            // Create student lesson record
+            $studentLesson = StudentLesson::create([
+                'user_id' => $student->id,
+                'lesson_id' => $lesson->id,
+                'is_unlocked' => $isUnlocked,
+                'content_viewed' => true,
+                'quiz_passed' => false,
+                'simulations_completed' => false,
+                'simulation_progress' => 0,
+                'best_score' => null,
+                'completed_at' => null,
+                'created_at' => now()->subDays($currentDay),
+            ]);
+
+            $lessonCompleted = false;
+
+            // Handle quiz attempts
+            if ($lesson->quiz && $lesson->quiz->is_active) {
+                $quizPassed = $this->createQuizAttempts($student, $lesson, $studentLesson, $performanceLevel, $currentDay);
+                $studentLesson->refresh();
+            } else {
+                $quizPassed = true; // No quiz means quiz requirement is met
+            }
+
+            // Handle simulation attempts (only for lessons 1, 2, 3)
+            if ($lesson->has_simulation && $lesson->id <= 3) {
+                $simPassed = $this->createSimulationAttempts($student, $lesson, $studentLesson, $performanceLevel, $currentDay);
+                $studentLesson->refresh();
+            } else {
+                $simPassed = true; // No simulation means simulation requirement is met
+            }
+
+            // Update completion status if both requirements are met
+            if ($quizPassed && $simPassed) {
+                $studentLesson->completed_at = now()->subDays($currentDay - rand(1, 3));
+                $studentLesson->save();
+                $completedLessons++;
+                $lessonCompleted = true;
+                
+                // Move to next lesson (add some days between lessons)
+                $currentDay = max(1, $currentDay - rand(2, 7));
+            } else {
+                // Student failed and stopped progressing
+                break;
+            }
+        }
+    }
+
+    /**
+     * Create quiz attempts for a student
+     */
+    private function createQuizAttempts($student, $lesson, $studentLesson, $performanceLevel, $currentDay): bool
+    {
+        $quiz = $lesson->quiz;
+        $questions = Question::where('quiz_id', $quiz->id)->with('answers')->get();
+        
+        if ($questions->isEmpty()) {
+            return true;
+        }
+
+        // Determine number of attempts - most students pass within 1-2 attempts
+        if ($performanceLevel <= 3) {
+            // Struggling: 2-3 attempts, 70% eventually pass
+            $numAttempts = rand(2, 3);
+            $willEventuallyPass = rand(1, 100) <= 70;
+        } elseif ($performanceLevel <= 7) {
+            // Average: 1-2 attempts, 90% pass
+            $numAttempts = rand(1, 2);
+            $willEventuallyPass = rand(1, 100) <= 90;
+        } else {
+            // Excellent: 1 attempt, 98% pass
+            $numAttempts = 1;
+            $willEventuallyPass = rand(1, 100) <= 98;
+        }
+        
+        $bestScore = 0;
+        $hasPassed = false;
+
+        for ($attempt = 0; $attempt < $numAttempts; $attempt++) {
+            // Calculate score based on performance level with improvement per attempt
+            $baseScore = $this->getQuizScore($performanceLevel, $attempt, $numAttempts, $willEventuallyPass);
+            $score = min(100, max(0, $baseScore + rand(-5, 5)));
+            
+            $passed = $score >= $quiz->passing_score;
+            
+            if ($score > $bestScore) {
+                $bestScore = $score;
+            }
+            
+            if ($passed) {
+                $hasPassed = true;
+            }
+
+            // Generate realistic answers data
+            $answersData = $this->generateQuizAnswers($questions, $score);
+            
+            // Calculate completion time (2-8 minutes)
+            $completionTime = $performanceLevel <= 3 ? rand(300, 480) : rand(120, 360);
+            
+            $attemptDay = $currentDay + ($attempt * rand(1, 3));
+            $startedAt = now()->subDays($attemptDay)->subSeconds($completionTime);
+            
+            UserQuizAttempt::create([
+                'user_id' => $student->id,
+                'quiz_id' => $quiz->id,
+                'started_at' => $startedAt,
+                'completed_at' => $startedAt->copy()->addSeconds($completionTime),
+                'completion_time' => $completionTime,
+                'score' => $score,
+                'passed' => $passed,
+                'answers_data' => json_encode($answersData)
+            ]);
+
+            // If passed, stop (95% stop after passing)
+            if ($passed && rand(1, 100) <= 95) {
+                break;
+            }
+        }
+
+        // Update student lesson progress
+        $studentLesson->best_score = $bestScore;
+        $studentLesson->quiz_passed = $hasPassed;
+        $studentLesson->save();
+        
+        return $hasPassed;
+    }
+
+    /**
+     * Create simulation attempts for a student
+     */
+    private function createSimulationAttempts($student, $lesson, $studentLesson, $performanceLevel, $currentDay): bool
+    {
+        // Simulation configurations
+        $simConfigs = [
+            1 => ['id' => 'lesson-1-sim', 'scenarios' => 5],
+            2 => ['id' => 'lesson-2-sim', 'scenarios' => 5],
+            3 => ['id' => 'lesson-3-sim', 'scenarios' => 5],
+        ];
+
+        $config = $simConfigs[$lesson->id] ?? null;
+        if (!$config) {
+            return true;
+        }
+
+        // Most students pass simulations
+        if ($performanceLevel <= 3) {
+            $numAttempts = rand(2, 3);
+            $willEventuallyPass = rand(1, 100) <= 75;
+        } elseif ($performanceLevel <= 7) {
+            $numAttempts = rand(1, 2);
+            $willEventuallyPass = rand(1, 100) <= 92;
+        } else {
+            $numAttempts = 1;
+            $willEventuallyPass = rand(1, 100) <= 98;
+        }
+        
+        $hasPassed = false;
+
+        for ($attempt = 1; $attempt <= $numAttempts; $attempt++) {
+            // Calculate success rate based on performance level and attempt
+            if ($performanceLevel <= 3) {
+                $baseSuccessRate = 0.50 + ($attempt * 0.12); // 50%, 62%, 74%
+            } elseif ($performanceLevel <= 7) {
+                $baseSuccessRate = 0.68 + ($attempt * 0.10); // 68%, 78%
+            } else {
+                $baseSuccessRate = 0.82; // 82%+
+            }
+            
+            // If this is the last attempt and they should pass, boost success rate
+            if ($attempt === $numAttempts && $willEventuallyPass && !$hasPassed) {
+                $baseSuccessRate = 0.80; // Ensure they pass
+            }
+            
+            // Generate scenario results
+            $scenarioResults = $this->generateSimulationResults($config['scenarios'], $baseSuccessRate, $attempt);
+            
+            // Calculate score
+            $correctCount = collect($scenarioResults)->where('correct', true)->count();
+            $percentage = ($correctCount / $config['scenarios']) * 100;
+            $passed = $percentage >= 70;
+            
+            if ($passed) {
+                $hasPassed = true;
+            }
+
+            // Generate click data
+            $clickData = $this->generateClickData($config['scenarios']);
+            
+            // Calculate time (30 seconds to 2 minutes per scenario)
+            $timeTaken = rand(30, 120) * $config['scenarios'];
+            
+            $attemptDay = $currentDay + ($attempt * rand(1, 2));
+            $startedAt = now()->subDays($attemptDay);
+            
+            SimulationAttempt::create([
+                'user_id' => $student->id,
+                'lesson_id' => $lesson->id,
+                'simulation_id' => $config['id'],
+                'started_at' => $startedAt,
+                'completed_at' => $startedAt->copy()->addSeconds($timeTaken),
+                'score' => $correctCount,
+                'total_scenarios' => $config['scenarios'],
+                'time_taken' => $timeTaken,
+                'click_data' => $clickData,
+                'scenario_results' => $scenarioResults,
+                'attempt_number' => $attempt
+            ]);
+
+            // If passed, stop (90% stop after passing)
+            if ($passed && rand(1, 100) <= 90) {
+                break;
+            }
+        }
+
+        // Update student lesson progress
+        $studentLesson->simulations_completed = $hasPassed;
+        $studentLesson->save();
+        
+        return $hasPassed;
+    }
+
+    /**
+     * Get progress percentage based on performance level
+     */
+    private function getProgressPercentage($performanceLevel): float
+    {
+        if ($performanceLevel <= 3) {
+            return rand(20, 40) / 100; // Struggling: 20-40%
+        } elseif ($performanceLevel <= 7) {
+            return rand(50, 80) / 100; // Average: 50-80%
+        } else {
+            return rand(85, 100) / 100; // Excellent: 85-100%
+        }
+    }
+
+    /**
+     * Calculate quiz score based on performance and attempt number
+     */
+    private function getQuizScore($performanceLevel, $attemptNumber, $totalAttempts, $willEventuallyPass): int
+    {
+        // Base scores by performance level (higher now to ensure more passing)
+        $baseScores = [
+            1 => 55, 2 => 60, 3 => 65,  // Struggling: 55-65%
+            4 => 72, 5 => 75, 6 => 78, 7 => 82,  // Average: 72-82%
+            8 => 85, 9 => 90, 10 => 95  // Excellent: 85-95%
+        ];
+        
+        $baseScore = $baseScores[$performanceLevel];
+        
+        // Improvement with each attempt (students learn)
+        $improvement = ($attemptNumber * 8);
+        
+        $score = $baseScore + $improvement;
+        
+        // If this is the last attempt and they should pass, ensure they pass
+        if ($attemptNumber === $totalAttempts - 1 && $willEventuallyPass && $score < 80) {
+            $score = rand(80, 85);
+        }
+        
+        return min(100, $score);
+    }
+
+    /**
+     * Generate realistic quiz answers
+     */
+    private function generateQuizAnswers($questions, $targetScore): array
+    {
+        $totalQuestions = $questions->count();
+        $targetCorrect = round(($targetScore / 100) * $totalQuestions);
+        
+        $answersData = [];
+        $correctCount = 0;
+
+        // Shuffle questions to randomize which ones are correct
+        $questionsList = $questions->shuffle();
+
+        foreach ($questionsList as $index => $question) {
+            $correctAnswer = $question->answers->firstWhere('is_correct', true);
+            
+            // Determine if this answer should be correct
+            $remainingQuestions = $totalQuestions - $index;
+            $needCorrect = $targetCorrect - $correctCount;
+            
+            // If we need more correct answers and running out of questions, make it correct
+            // Otherwise use probability based on how many we still need
+            $shouldBeCorrect = $needCorrect > 0 && 
+                             ($needCorrect >= $remainingQuestions || 
+                              rand(1, $remainingQuestions) <= $needCorrect);
+            
+            $userAnswer = $shouldBeCorrect 
+                ? $correctAnswer->option_letter 
+                : $question->answers->where('is_correct', false)->random()->option_letter;
+            
+            $isCorrect = $userAnswer === $correctAnswer->option_letter;
+            
+            if ($isCorrect) {
+                $correctCount++;
+            }
+
+            $answersData[] = [
+                'question_id' => $question->id,
+                'question_text' => $question->question_text,
+                'user_answer' => $userAnswer,
+                'correct_answer' => $correctAnswer->option_letter,
+                'is_correct' => $isCorrect,
+                'points' => $question->points,
+                'earned_points' => $isCorrect ? $question->points : 0,
+                'answers' => $question->answers->map(function($answer) {
+                    return [
+                        'option_letter' => $answer->option_letter,
+                        'answer_text' => $answer->answer_text,
+                        'is_correct' => $answer->is_correct,
+                        'explanation' => $answer->explanation
+                    ];
+                })->toArray()
+            ];
+        }
+
+        return $answersData;
+    }
+
+    /**
+     * Generate simulation scenario results
+     */
+    private function generateSimulationResults($totalScenarios, $baseSuccessRate, $attemptNumber): array
+    {
+        $results = [];
+        
+        // Increase success rate with attempts (learning)
+        $successRate = min(0.95, $baseSuccessRate + (($attemptNumber - 1) * 0.1));
+        
+        $scenarioNames = [
+            'Phishing Email Detection',
+            'Suspicious Link Identification',
+            'Password Security',
+            'Social Engineering Warning',
+            'Data Privacy Protection'
+        ];
+
+        $actions = [
+            'Report as Phishing',
+            'Verify Sender',
+            'Check URL',
+            'Enable 2FA',
+            'Ignore and Delete',
+            'Contact IT Support',
+            'Update Password',
+            'Review Privacy Settings'
+        ];
+
+        for ($i = 0; $i < $totalScenarios; $i++) {
+            $isCorrect = (rand(1, 100) / 100) <= $successRate;
+            
+            $results[] = [
+                'scenario' => $scenarioNames[$i] ?? "Scenario " . ($i + 1),
+                'correct' => $isCorrect,
+                'selected_action' => $actions[array_rand($actions)]
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Generate realistic click data
+     */
+    private function generateClickData($scenarios): array
+    {
+        $clickData = [];
+        $totalClicks = rand(10, 30);
+        
+        $actions = [
+            'clicked_element',
+            'opened_action_menu',
+            'selected_option',
+            'closed_dialog',
+            'viewed_hint'
+        ];
+
+        for ($i = 0; $i < $totalClicks; $i++) {
+            $clickData[] = [
+                'timestamp' => now()->subMinutes(rand(1, 10))->timestamp,
+                'action' => $actions[array_rand($actions)],
+                'scenario' => rand(1, $scenarios)
+            ];
+        }
+
+        return $clickData;
     }
 }
