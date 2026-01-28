@@ -46,11 +46,6 @@ ANALYTICS OVERVIEW
                             <i class="ri-refresh-line me-1"></i> Reset
                         </a>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end justify-content-end">
-                        <a href="{{ route('admin.analytics.export', ['type' => 'overview']) }}" class="btn btn-success">
-                            <i class="ri-download-line me-1"></i> Export CSV
-                        </a>
-                    </div>
                 </form>
             </div>
         </div>
