@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CertificateController extends Controller
 {
@@ -130,7 +131,7 @@ class CertificateController extends Controller
         exec($command . ' 2>&1', $output, $return_var);
 
         if ($return_var !== 0 || !file_exists($outputPath)) {
-            \Log::error('Certificate generation failed', [
+            Log::error('Certificate generation failed', [
                 'command' => $command,
                 'output' => $output,
                 'return_var' => $return_var,

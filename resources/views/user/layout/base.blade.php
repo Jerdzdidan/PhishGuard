@@ -290,7 +290,7 @@
 </div>
 
 <!-- Certificate Notification Badge (Only for USER type with certificate) -->
-@if(auth()->check() && auth()->user()->user_type === 'USER' && auth()->user()->certificate)
+@if(auth()->check() && auth()->user()->user_type === 'USER' && auth()->user()->certificate && !request()->routeIs('certificate.view'))
 <div class="certificate-notification" id="certificateNotification">
     <a href="{{ route('certificate.view') }}" class="certificate-badge">
         <div class="certificate-badge-icon">🏆</div>
@@ -368,7 +368,7 @@
                                   '<p style="font-size: 18px; margin: 20px 0; font-weight: 500;">You have successfully completed all lessons!</p>' +
                                   '<div style="background: linear-gradient(135deg, #1E7F5C, #28c76f); color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">' +
                                   '<i class="ri-award-fill" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>' +
-                                  '<p style="font-size: 22px; font-weight: 700; margin: 0;">You\'ve Earned Your Certificate!</p>' +
+                                  '<p style="font-size: 22px; font-weight: 700;">You\'ve Earned Your Certificate!</p>' +
                                   '</div>' +
                                   '<p style="font-size: 14px; color: #666; margin-top: 15px;">Your certificate will be available in the bottom-right corner</p>' +
                                   '</div>',

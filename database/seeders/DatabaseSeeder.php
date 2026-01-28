@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 
-        private function createLessonsAndQuizzes(): void
+    private function createLessonsAndQuizzes(): void
     {
         // Lesson 1
         $this->createLesson(
@@ -71,7 +71,8 @@ class DatabaseSeeder extends Seeder
             'Introduction to Cybersecurity Quiz',
             80,
             $this->getLesson1Questions(),
-            true
+            true,
+            "lessons/ky3Bw1rxzHJlGL9kNFvcYL61BfLtNBDqZ4gZOuLB.jpg"
         );
 
         // Lesson 2
@@ -85,7 +86,8 @@ class DatabaseSeeder extends Seeder
             'Social Engineering Fundamentals Quiz',
             80,
             $this->getLesson2Questions(),
-            true
+            true,
+            "lessons/OnhrXuUvu3qsvLybMRhAftWmyo0Q2hu6KYYDcLA4.jpg"
         );
 
         // Lesson 3
@@ -99,7 +101,8 @@ class DatabaseSeeder extends Seeder
             'Phishing, Smishing, and Vishing Quiz',
             80,
             $this->getLesson3Questions(),
-            true
+            true,
+            "lessons/n0kyBHixSUOBbqxT6SpRXPPuSoaki1HNtcWrZ4BO.jpg"
         );
 
         // Lesson 4
@@ -112,7 +115,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson4Content(),
             'Social Media Impersonation & Hijacked Accounts Quiz',
             80,
-            $this->getLesson4Questions()
+            $this->getLesson4Questions(),
+            false,
+            "lessons/CrOqwxckQ7PF3Us0Iaba9n70DnbfWMeOba7lIA1H.jpg"
         );
 
         // Lesson 5
@@ -125,7 +130,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson5Content(),
             'Identity Theft & Data Protection Quiz',
             80,
-            $this->getLesson5Questions()
+            $this->getLesson5Questions(),
+            false,
+            "lessons/k2PLazaTwOJMHTAnvhWtbcE3n9U7LZcEFeYTae07.jpg"
         );
 
         // Lesson 6
@@ -138,7 +145,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson6Content(),
             'AI-Enhanced Scams and Deepfakes Quiz',
             80,
-            $this->getLesson6Questions()
+            $this->getLesson6Questions(),
+            false,
+            "lessons/l1xSd3egSTLNWqdtA93fXRwP5YeZJa2utCzYLeYe.jpg"
         );
 
         // Lesson 7
@@ -151,7 +160,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson7Content(),
             'Pretexting, Baiting, and Advanced Manipulation Quiz',
             80,
-            $this->getLesson7Questions()
+            $this->getLesson7Questions(),
+            false,
+            "lessons/k7sYPZyNweXAIxyCFIASKTWiWiCFR3FBTVKtTNYw.jpg"
         );
 
         // Lesson 8
@@ -164,7 +175,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson8Content(),
             'Cybercrime Laws (RA 10175) Quiz',
             80,
-            $this->getLesson8Questions()
+            $this->getLesson8Questions(),
+            true,
+            "lessons/3aiThJ2fzqkzOH1E4Jsf44iknKSNf2AoA25zNu9G.jpg"
         );
 
         // Lesson 9
@@ -177,7 +190,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson9Content(),
             'Reporting and Enforcement Mechanisms Quiz',
             80,
-            $this->getLesson9Questions()
+            $this->getLesson9Questions(),
+            false,
+            "lessons/PzoI3ueRoN0VERQ2g3c0vfJW2X6Jp0oyjuFAjMWv.jpg"
         );
 
         // Lesson 10
@@ -190,7 +205,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson10Content(),
             'Cyber Hygiene & Personal Defense Strategies Quiz',
             80,
-            $this->getLesson10Questions()
+            $this->getLesson10Questions(),
+            false,
+            "lessons/HlhasBshLmhQOliB10w5z1yN1DOegve6PsFeQpy1.jpg"
         );
 
         // Lesson 11
@@ -203,7 +220,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson11Content(),
             'Organizational & Workplace Security Quiz',
             80,
-            $this->getLesson11Questions()
+            $this->getLesson11Questions(),
+            false,
+            "lessons/fzyU09dniHaUU5iOVYIwxYipphUANlXLDrLtjM1d.jpg"
         );
 
         // Lesson 12
@@ -216,7 +235,9 @@ class DatabaseSeeder extends Seeder
             $this->getLesson12Content(),
             'Emerging Threats & Future Trends Quiz',
             80,
-            $this->getLesson12Questions()
+            $this->getLesson12Questions(),
+            false,
+            "lessons/bozG6nttOw8pifA4Xy6WiM0wK0PBjjqBIjQWzcC0.jpg"
         );
 
         // Lesson 13
@@ -229,14 +250,16 @@ class DatabaseSeeder extends Seeder
             $this->getLesson13Content(),
             'Strategic Cybersecurity Planning & National Readiness Quiz',
             80,
-            $this->getLesson13Questions()
+            $this->getLesson13Questions(),
+            false,
+            "lessons/54IrQPHYF5LY95KobGAqJgI7lKCDzFsXQ5duT8Uj.jpg"
         );
     }
 
-    private function createLesson($prerequisiteId, $title, $description, $time, $difficulty, $content, $quizTitle, $passingScore, $questions, $hasSimulation=false): void
+    private function createLesson($prerequisiteId, $title, $description, $time, $difficulty, $content, $quizTitle, $passingScore, $questions, $hasSimulation=false, $image_path): void
     {
         $lesson = Lesson::factory()->create([
-            'image_path' => '',
+            'image_path' => $image_path,
             'title' => $title,
             'description' => $description,
             'time' => $time,
