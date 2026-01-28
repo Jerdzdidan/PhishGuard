@@ -166,7 +166,7 @@ $(document).ready(function() {
         destroyUrl: "{{ route('admin.users.destroy', ':id') }}",
         toggleUrl: "{{ route('admin.users.toggle', ':id') }}",
 
-        entityName: 'Admin',
+        entityName: 'User',
         dataTable: adminTable,
         csrfToken: "{{ csrf_token() }}",
         form: '#add-or-update-form',

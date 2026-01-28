@@ -9,6 +9,7 @@ use App\Http\Controllers\User\CourseAppController;
 use App\Http\Controllers\User\SimulationController;
 use App\Http\Controllers\User\UserLessonController;
 use App\Http\Controllers\User\UserQuizController;
+use App\Http\Controllers\User\CertificateController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -36,6 +37,13 @@ Route::prefix('auth')->name('auth.')->group(function () {
 // MAIN USER ROUTES
 Route::prefix('')->middleware('auth')->group(function () {
     Route::get('home', [UserLessonController::class, 'index'])->name('user.home');
+
+    // Certificate Routes
+    Route::prefix('certificate')->name('certificate.')->group(function() {
+        Route::get('check', [CertificateController::class, 'checkEligibility'])->name('check');
+        Route::get('view', [CertificateController::class, 'view'])->name('view');
+        Route::get('download', [CertificateController::class, 'download'])->name('download');
+    });
 
     Route::prefix('lessons')->name('lessons.')->group(function () {
         Route::get('show/{id}', [UserLessonController::class, 'show'])->name('show');

@@ -107,4 +107,62 @@ class User extends Authenticatable
             return ($attempt->score / $attempt->total_scenarios) * 100;
         });
     }
+
+    /**
+     * Get user's certificate
+     */
+    public function certificate()
+    {
+        return $this->hasOne(Certificate::class);
+    }
+
+    /**
+     * Check if user has completed all lessons
+     */
+    public function hasCompletedAllLessons(): bool
+    {
+        $totalActiveLessons = Lesson::where('is_active', true)->count();
+        $completedLessons = $this->studentLessons()
+            ->whereNotNull('completed_at')
+            ->count();
+        
+        return $totalActiveLessons > 0 && $completedLessons >= $totalActiveLessons;
+    }
+
+    /**
+     * Check if user is eligible for certificate
+     */
+    public function isEligibleForCertificate(): bool
+    {
+        // Must complete all lessons
+        if (!$this->hasCompletedAllLessons()) {
+            return false;
+        }
+
+        // Check if already has certificate
+        if ($this->certificate) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Issue certificate to user
+     */
+    public function issueCertificate()
+    {
+        if (!$this->isEligibleForCertificate()) {
+            return null;
+        }
+
+        return Certificate::create([
+            'user_id' => $this->id,
+            'certificate_number' => Certificate::generateCertificateNumber(),
+            'issued_at' => now(),
+            'total_lessons_completed' => $this->completedLessonsCount(),
+            'average_quiz_score' => $this->averageQuizScore(),
+            'average_simulation_score' => $this->averageSimulationScore()
+        ]);
+    }
 }
