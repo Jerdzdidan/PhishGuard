@@ -24,39 +24,149 @@
     <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/fonts/iconify-icons.css') }}" />
 
     <!-- Core CSS -->
-    <!-- build:css assets/vendor/css/theme.css  -->
-    
-      
-      <link rel="stylesheet" href="../../assets/vendor/libs/pickr/pickr-themes.css" />
-    
     <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/css/core.css') }}" />
     <link rel="stylesheet" href="{{ asset('themes/sneat/assets/css/demo.css') }}" />
 
-    
     <!-- Vendors CSS -->
-    
-      <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
-    
-    <!-- endbuild -->
-
-    {{-- <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/libs/select2/select2.css') }}
-          <link rel="stylesheet" href="../../assets/vendor/libs/plyr/plyr.css" /> --}}
+    <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
 
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <!-- Page CSS -->
-    
     <link rel="stylesheet" href="{{ asset('themes/sneat/assets/vendor/css/pages/app-academy.css') }}" />
+    
+    <style>
+        /* Certificate Notification Badge */
+        .certificate-notification {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            animation: slideInRight 0.5s ease-out, pulse 2s ease-in-out 2s infinite;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .certificate-badge {
+            background: linear-gradient(135deg, #1E7F5C 0%, #28c76f 100%);
+            color: white;
+            padding: 18px 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(30, 127, 92, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            min-width: 260px;
+        }
+
+        .certificate-badge:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(30, 127, 92, 0.5);
+            color: white;
+        }
+
+        .certificate-badge-icon {
+            font-size: 32px;
+            animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .certificate-badge-content {
+            flex: 1;
+        }
+
+        .certificate-badge-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .certificate-badge-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .certificate-badge-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .certificate-badge-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .certificate-notification.hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .certificate-notification {
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+            }
+            
+            .certificate-badge {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+
+        @media print {
+            .certificate-notification {
+                display: none !important;
+            }
+        }
+    </style>
+    
     @yield('style')
 
     <!-- Helpers -->
     <script src="{{ asset('themes/sneat/assets/vendor/js/helpers.js') }}"></script>
-   
-    <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
-    
     <script src="{{ asset('themes/sneat/assets/js/config.js') }}"></script>
-    
   </head>
 
   <body>
@@ -65,12 +175,7 @@
 <div class="layout-wrapper layout-navbar-full layout-horizontal layout-without-menu">
   <div class="layout-container">
     
-    
-
-
-
 <!-- Navbar -->
-
 <nav class="layout-navbar navbar navbar-expand-xl align-items-center" id="layout-navbar">
   <div class="container-xxl">
 
@@ -81,7 +186,6 @@
       </span>
       <span class="app-brand-text demo text-dark menu-text fw-bold ms-2 ps-1">CyberWais</span>
     </a>
-
   </div>
 
   <div class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0  d-xl-none  ">
@@ -90,15 +194,8 @@
     </a>
   </div>
 
-
 <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
-  
-  
-
-  
-
   <ul class="navbar-nav flex-row align-items-center ms-md-auto">
-
       <li class="nav-item lh-1 me-4 text-end">
           <h6 class="mb-0">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</h6>
           <small class="text-body-secondary">{{ auth()->user()->user_type }}</small>
@@ -152,14 +249,11 @@
         </ul>
       </li>
       <!--/ User -->
-    
   </ul>
 </div>
 </div>
 </nav>
-
 <!-- / Navbar -->
-    
 
     <!-- Layout container -->
     <div class="layout-page">
@@ -187,76 +281,86 @@
         </footer>
         <!-- / Footer -->
 
-        
         <div class="content-backdrop fade"></div>
       </div>
       <!--/ Content wrapper -->
     </div>
-
     <!--/ Layout container -->
   </div>
 </div>
 
-
+<!-- Certificate Notification Badge (Only for USER type with certificate) -->
+@if(auth()->check() && auth()->user()->user_type === 'USER' && auth()->user()->certificate)
+<div class="certificate-notification" id="certificateNotification">
+    <a href="{{ route('certificate.view') }}" class="certificate-badge">
+        <div class="certificate-badge-icon">🏆</div>
+        <div class="certificate-badge-content">
+            <div class="certificate-badge-title">CERTIFICATE EARNED!</div>
+            <div class="certificate-badge-subtitle">Click to view your achievement</div>
+        </div>
+        <button type="button" class="certificate-badge-close" onclick="event.preventDefault(); event.stopPropagation(); hideCertificateNotification();">
+            ×
+        </button>
+    </a>
+</div>
+@endif
 
 <!-- Overlay -->
 <div class="layout-overlay layout-menu-toggle"></div>
 
-
 <!-- Drag Target Area To SlideIn Menu On Small Screens -->
 <div class="drag-target"></div>
 
-<!--/ Layout wrapper -->
-
     <!-- Core JS -->
-    
-    
     <script src="{{ asset('themes/sneat/assets/vendor/libs/jquery/jquery.js') }}"></script>
-    
     <script src="{{ asset('themes/sneat/assets/vendor/libs/popper/popper.js') }}"></script>
     <script src="{{ asset('themes/sneat/assets/vendor/js/bootstrap.js') }}"></script>
-    {{-- <script src="../../assets/vendor/libs/@algolia/autocomplete-js.js"></script> --}}
-
-      {{-- <script src="../../assets/vendor/libs/pickr/pickr.js"></script> --}}
-    
     <script src="{{ asset('themes/sneat/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
-         
-    {{-- <script src="../../assets/vendor/libs/hammer/hammer.js"></script> --}}
-        
-    {{-- <script src="../../assets/vendor/libs/i18n/i18n.js"></script> --}}
-        
-      
     <script src="{{ asset('themes/sneat/assets/vendor/js/menu.js') }}"></script>
-    
-    <!-- endbuild -->
-
-    <!-- Vendors JS -->
-    {{-- <script src="../../assets/vendor/libs/select2/select2.js"></script> --}}
-    {{-- <script src="../../assets/vendor/libs/plyr/plyr.js"></script> --}}
 
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Main JS -->
-    
     <script src="{{ asset('themes/sneat/assets/js/main.js') }}"></script>
-    
+
+    <!-- Certificate Notification Script -->
+    <script>
+    function hideCertificateNotification() {
+        const notification = document.getElementById('certificateNotification');
+        if (notification) {
+            notification.classList.add('hidden');
+            // Store in localStorage so it stays hidden
+            localStorage.setItem('certificateNotificationHidden_{{ auth()->id() }}', 'true');
+        }
+    }
+
+    // Check if notification was previously hidden
+    $(document).ready(function() {
+        const notificationHidden = localStorage.getItem('certificateNotificationHidden_{{ auth()->id() }}');
+        if (notificationHidden === 'true') {
+            const notification = document.getElementById('certificateNotification');
+            if (notification) {
+                notification.classList.add('hidden');
+            }
+        }
+    });
+    </script>
 
     <!-- Certificate Checker - Only for USER type -->
     @if(auth()->check() && auth()->user()->user_type === 'USER')
     <script>
     $(document).ready(function() {
-        // Check if we should show the certificate popup
-        // Only check if user just completed a lesson (session flag) or on first login
-        var shouldCheck = sessionStorage.getItem('checkCertificate');
+        // Check for new certificate eligibility only once per session
+        var certificateChecked = sessionStorage.getItem('certificateChecked_{{ auth()->id() }}');
         
-        if (shouldCheck === 'true' || shouldCheck === null) {
+        if (!certificateChecked) {
             $.ajax({
                 url: '{{ route("certificate.check") }}',
                 type: 'GET',
                 success: function(response) {
-                    if (response.eligible || (response.has_certificate && !localStorage.getItem('certificate_viewed_' + {{ auth()->id() }}))) {
-                        // Show certificate earned popup
+                    if (response.eligible && !response.has_certificate) {
+                        // User just became eligible - show congratulations
                         Swal.fire({
                             icon: 'success',
                             title: '🎉 Congratulations!',
@@ -266,7 +370,7 @@
                                   '<i class="ri-award-fill" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>' +
                                   '<p style="font-size: 22px; font-weight: 700; margin: 0;">You\'ve Earned Your Certificate!</p>' +
                                   '</div>' +
-                                  '<p style="font-size: 14px; color: #666; margin-top: 15px;">View and download your certificate of completion</p>' +
+                                  '<p style="font-size: 14px; color: #666; margin-top: 15px;">Your certificate will be available in the bottom-right corner</p>' +
                                   '</div>',
                             confirmButtonText: '<i class="ri-award-line me-2"></i> View My Certificate',
                             confirmButtonColor: '#1E7F5C',
@@ -280,20 +384,13 @@
                             }
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                // Mark as viewed so popup doesn't show again
-                                localStorage.setItem('certificate_viewed_' + {{ auth()->id() }}, 'true');
                                 window.location.href = '{{ route("certificate.view") }}';
-                            } else {
-                                // User clicked "View Later" - don't show again this session
-                                sessionStorage.setItem('checkCertificate', 'false');
                             }
                         });
                     }
                     
-                    // Clear the check flag after first check
-                    if (shouldCheck === null) {
-                        sessionStorage.setItem('checkCertificate', 'false');
-                    }
+                    // Mark as checked for this session
+                    sessionStorage.setItem('certificateChecked_{{ auth()->id() }}', 'true');
                 },
                 error: function(xhr) {
                     console.error('Error checking certificate eligibility');
@@ -305,10 +402,7 @@
     @endif
 
     <!-- Page JS -->
-    
     @yield('scripts')
     
   </body>
 </html>
-
-  <!-- beautify ignore:end -->
