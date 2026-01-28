@@ -28,7 +28,7 @@ USER PROGRESS TRACKING
 <div class="container-fluid">
     <div class="content-container">
         <!-- Page Header -->
-        <x-table.page-header title="User Progress Tracking" subtitle="Monitor student learning progress and performance">
+        <x-table.page-header title="" subtitle="Monitor student learning progress and performance">
         </x-table.page-header>
         
         <!-- DataTable -->

@@ -123,11 +123,6 @@ SIMULATION ANALYTICS
                                     </div>
                                 </div>
                             </div>
-                            <div class="alert alert-info mt-3 mb-0">
-                                <i class="ri-information-line me-2"></i>
-                                <strong>What is CTR?</strong> CTR measures how often users interact with action menus compared to total clicks. 
-                                Higher CTR indicates better engagement with simulation scenarios.
-                            </div>
                         </div>
                     </div>
                 </div>
