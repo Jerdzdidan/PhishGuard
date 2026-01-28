@@ -519,9 +519,13 @@ QUIZ ANALYTICS
         <div class="col-12">
             <div class="card">
                 <div class="card-body text-center py-5">
-                    <i class="ri-bar-chart-line ri-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Select a Lesson to View Analytics</h5>
-                    <p class="text-muted mb-0">Choose a lesson from the dropdown above to see detailed quiz question analytics.</p>
+                    <div class="avatar avatar-xl mb-3 mx-auto">
+                        <span class="avatar-initial rounded bg-label-primary">
+                            <i class="ri-bar-chart-line ri-48px"></i>
+                        </span>
+                    </div>
+                    <h4 class="mb-2">Select a Lesson to View Analytics</h4>
+                    <p class="text-muted mb-0">Choose a lesson from the filter above to see detailed simulation analytics for that lesson</p>
                 </div>
             </div>
         </div>

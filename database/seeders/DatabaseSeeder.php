@@ -2891,11 +2891,11 @@ class DatabaseSeeder extends Seeder
         $successRate = min(0.95, $baseSuccessRate + (($attemptNumber - 1) * 0.1));
         
         $scenarioNames = [
-            'Phishing Email Detection',
-            'Suspicious Link Identification',
-            'Password Security',
-            'Social Engineering Warning',
-            'Data Privacy Protection'
+            'GCash Phishing SMS',
+            'Fake BDO Login Page', 
+            'Facebook Marketplace Scam',
+            'Job Offer Training Fee Scam',
+            'Public WiFi Banking Risk'
         ];
 
         $actions = [
