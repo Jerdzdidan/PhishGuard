@@ -43,6 +43,7 @@ Route::prefix('')->middleware('auth')->group(function () {
         Route::get('check', [CertificateController::class, 'checkEligibility'])->name('check');
         Route::get('view', [CertificateController::class, 'view'])->name('view');
         Route::get('download', [CertificateController::class, 'download'])->name('download');
+        Route::get('generate', [CertificateController::class, 'generate'])->name('generate');
     });
 
     Route::prefix('lessons')->name('lessons.')->group(function () {
