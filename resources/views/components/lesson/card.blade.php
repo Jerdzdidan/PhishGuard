@@ -53,11 +53,7 @@
                     </small>
                 </div>
             @endif
-            
-            <p class="d-flex align-items-center mb-1">
-                <i class="icon-base bx bx-time-five me-1"></i>{{ $lesson->time }} min
-            </p>
-            
+    
             @if($lesson->isUnlocked())
                 @php
                     $progress = $lesson->progress;
@@ -95,6 +91,9 @@
                         }
                     }
                 @endphp
+                <p class="d-flex align-items-center mb-1">
+                    {{ $progressPercent }}% Complete
+                </p>
                 <div class="progress mb-4" style="height: 8px">
                     <div class="progress-bar {{ $progressPercent === 100 ? 'bg-success' : '' }}" 
                         role="progressbar" 
