@@ -82,6 +82,8 @@ Route::prefix('admin')->middleware('auth')->name('admin.')->group(function () {
         Route::get('edit/{id}', [LessonController::class, 'edit'])->name('edit');
         Route::put('update/{id}', [LessonController::class, 'update'])->name('update');
 
+        Route::get('destroy/{id}', [LessonController::class, 'destroy'])->name('destroy');
+
         Route::prefix('quiz')->name('quiz.')->group(function () {
             Route::get('{id}', [QuizController::class, 'show'])->name('show');
             Route::post('store/{id}', [QuizController::class, 'store'])->name('store');

@@ -14,6 +14,24 @@ LESSONS
 
 @section('body')
 
+@foreach(['success', 'error', 'warning', 'info'] as $type)
+              @if(session($type))
+                  <div class="alert alert-{{ $type === 'error' ? 'danger' : $type }} alert-dismissible" role="alert">
+                      {{ session($type) }}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+              @endif
+          @endforeach
+
+          @if($errors->any())
+              <div class="alert alert-danger alert-dismissible" role="alert">
+                  @foreach($errors->all() as $error)
+                      <div>{{ $error }}</div>
+                  @endforeach
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+          @endif
+
 <div class="app-academy">
 
     <div class="card p-0 mb-6">

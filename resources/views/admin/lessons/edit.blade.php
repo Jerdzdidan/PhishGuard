@@ -325,6 +325,14 @@ body:not(.edit-mode-active) .inline-edit-field {
                     </button>
                 </div>
             </div>
+
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <button id="deleteButton" type="button" class="btn btn-danger w-100 mt-2">
+                        <i class="ri-delete-bin-6-line me-2"></i> Delete Lesson
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </form>
@@ -456,6 +464,23 @@ $(document).ready(function() {
         
         // Submit form
         this.submit();
+    });
+
+    $('#deleteButton').on('click', function() {
+        Swal.fire({
+            title: 'Confirm Delete',
+            html: `Are you sure you want to delete this lesson?</span>`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#dc3545ff",
+            cancelButtonColor: "#6c757dff",
+            confirmButtonText: "Confirm",
+            cancelButtonText: "Cancel"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ route('admin.lessons.destroy', ['id' => Crypt::encryptString($lesson->id)]) }}";
+            }
+        });
     });
 });
 </script>

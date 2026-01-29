@@ -126,4 +126,14 @@ class LessonController extends Controller
             ->route('admin.lessons.edit', Crypt::encryptString($lesson->id))
             ->with('success', 'Lesson updated successfully!');
     }
+
+    public function destroy($id)
+    {
+        $decrypted = Crypt::decryptString($id);
+        Lesson::findOrFail($decrypted)->delete();
+
+        return redirect()
+            ->route('admin.lessons.index')
+            ->with('success', 'Lesson deleted successfully.');
+    }
 }

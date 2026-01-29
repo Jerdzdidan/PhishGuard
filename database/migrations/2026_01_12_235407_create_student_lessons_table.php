@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('student_lessons', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('lesson_id')->constrained();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('lesson_id')->constrained()->cascadeOnDelete();
             $table->boolean('is_unlocked')->default(false);
             $table->boolean('content_viewed')->default(false);
             $table->boolean('quiz_passed')->default(false);
