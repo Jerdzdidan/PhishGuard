@@ -27,7 +27,7 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
- 
+
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
 
@@ -38,15 +38,13 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
-            if($user->user_type == 'USER'){
+            if ($user->user_type == 'USER') {
                 return redirect()->route('user.home');
+            } else if ($user->user_type == 'ADMIN') {
+                return redirect()->route('admin.home');
             }
-            else if($user->user_type == 'ADMIN'){
-                return redirect()->route('admin.home');    
-            }
-            
         }
- 
+
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
@@ -63,13 +61,8 @@ class AuthController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'confirm_password' => 'required|string|min:6',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:6|confirmed',
         ]);
-
-        if ($validated['password'] !== $validated['confirm_password']) {
-            return back()->withErrors(['password' => 'Passwords do not match'])->withInput();
-        }
 
         $user = User::create([
             'first_name' => $validated['first_name'],
@@ -87,9 +80,9 @@ class AuthController extends Controller
     public function logout(Request $request): RedirectResponse
     {
         Auth::logout();
-    
+
         $request->session()->invalidate();
-    
+
         $request->session()->regenerateToken();
 
         return redirect()->route('landing.index');

@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'user_type',
+        'google_id',
     ];
 
     /**
@@ -45,6 +46,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'status' => 'boolean',
         ];
     }
 
@@ -98,12 +100,12 @@ class User extends Authenticatable
         $attempts = $this->simulationAttempts()
             ->whereNotNull('completed_at')
             ->get();
-        
+
         if ($attempts->isEmpty()) {
             return null;
         }
-        
-        return $attempts->avg(function($attempt) {
+
+        return $attempts->avg(function ($attempt) {
             return ($attempt->score / $attempt->total_scenarios) * 100;
         });
     }
@@ -125,7 +127,7 @@ class User extends Authenticatable
         $completedLessons = $this->studentLessons()
             ->whereNotNull('completed_at')
             ->count();
-        
+
         return $totalActiveLessons > 0 && $completedLessons >= $totalActiveLessons;
     }
 

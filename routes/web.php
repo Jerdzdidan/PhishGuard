@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\QuizController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserProgressController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\User\CourseAppController;
@@ -11,11 +13,6 @@ use App\Http\Controllers\User\UserLessonController;
 use App\Http\Controllers\User\UserQuizController;
 use App\Http\Controllers\User\CertificateController;
 use Illuminate\Support\Facades\Route;
-
-
-Route::get('/placeholder', function () {
-    return 'This page is under construction.';
-})->name('#');
 
 // LANDING PAGE
 Route::get('', [AuthController::class, 'index'])->name('landing.index');
@@ -31,7 +28,7 @@ Route::prefix('auth')->name('auth.')->group(function () {
     Route::get('sign-up', [AuthController::class, 'signup'])->name('sign-up');
     Route::post('create-user', [AuthController::class, 'store'])->name('create-user');
 
-    Route::get('logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 });
 
 // MAIN USER ROUTES
@@ -39,7 +36,7 @@ Route::prefix('')->middleware('auth')->group(function () {
     Route::get('home', [UserLessonController::class, 'index'])->name('user.home');
 
     // Certificate Routes
-    Route::prefix('certificate')->name('certificate.')->group(function() {
+    Route::prefix('certificate')->name('certificate.')->group(function () {
         Route::get('check', [CertificateController::class, 'checkEligibility'])->name('check');
         Route::get('view', [CertificateController::class, 'view'])->name('view');
         Route::get('download', [CertificateController::class, 'download'])->name('download');
@@ -49,14 +46,14 @@ Route::prefix('')->middleware('auth')->group(function () {
     Route::prefix('lessons')->name('lessons.')->group(function () {
         Route::get('show/{id}', [UserLessonController::class, 'show'])->name('show');
 
-        Route::prefix('quiz')->name('quiz.')->group(function() {
+        Route::prefix('quiz')->name('quiz.')->group(function () {
             Route::get('{id}', [UserQuizController::class, 'show'])->name('show');
             Route::post('submit/{id}', [UserQuizController::class, 'submit'])->name('submit');
             Route::get('results/{id}/{attempt}', [UserQuizController::class, 'results'])->name('results');
             Route::get('retake/{id}', [UserQuizController::class, 'retake'])->name('retake');
         });
 
-        Route::prefix('simulations')->name('simulations.')->group(function() {
+        Route::prefix('simulations')->name('simulations.')->group(function () {
             Route::get('{id}', [SimulationController::class, 'index'])->name('index');
             Route::get('{id}/{simId}', [SimulationController::class, 'show'])->name('show');
             Route::post('{id}/{simId}/start', [SimulationController::class, 'start'])->name('start');
@@ -99,12 +96,12 @@ Route::prefix('admin')->middleware('auth')->name('admin.')->group(function () {
     });
 
     // USER MANAGEMENT
-    Route::prefix('users')->name('users.')->group(function() {
+    Route::prefix('users')->name('users.')->group(function () {
         Route::get('', [UserController::class, 'index'])->name('index');
 
         Route::get('data', [UserController::class, 'getData'])->name('data');
         Route::get('stats', [UserController::class, 'getStats'])->name('stats');
-        
+
         Route::post('store', [UserController::class, 'store'])->name('store');
 
         Route::get('edit/{id}', [UserController::class, 'edit'])->name('edit');
@@ -115,18 +112,18 @@ Route::prefix('admin')->middleware('auth')->name('admin.')->group(function () {
         Route::post('toggle/{id}', [UserController::class, 'toggle'])->name('toggle');
     });
 
-    Route::prefix('analytics')->name('analytics.')->group(function() {
-        Route::get('overview', [App\Http\Controllers\Admin\AnalyticsController::class, 'overview'])->name('overview');
-        Route::get('quiz', [App\Http\Controllers\Admin\AnalyticsController::class, 'quizAnalytics'])->name('quiz');
-        Route::get('simulation', [App\Http\Controllers\Admin\AnalyticsController::class, 'simulationAnalytics'])->name('simulation');
-        Route::get('heatmap', [App\Http\Controllers\Admin\AnalyticsController::class, 'heatmap'])->name('heatmap');
-        Route::get('export', [App\Http\Controllers\Admin\AnalyticsController::class, 'export'])->name('export');
+    Route::prefix('analytics')->name('analytics.')->group(function () {
+        Route::get('overview', [AnalyticsController::class, 'overview'])->name('overview');
+        Route::get('quiz', [AnalyticsController::class, 'quizAnalytics'])->name('quiz');
+        Route::get('simulation', [AnalyticsController::class, 'simulationAnalytics'])->name('simulation');
+        Route::get('heatmap', [AnalyticsController::class, 'heatmap'])->name('heatmap');
+        Route::get('export', [AnalyticsController::class, 'export'])->name('export');
     });
 
     // USER PROGRESS
-    Route::prefix('user-progress')->name('user-progress.')->group(function() {
-        Route::get('', [App\Http\Controllers\Admin\UserProgressController::class, 'index'])->name('index');
-        Route::get('data', [App\Http\Controllers\Admin\UserProgressController::class, 'getData'])->name('data');
-        Route::get('show/{id}', [App\Http\Controllers\Admin\UserProgressController::class, 'show'])->name('show');
+    Route::prefix('user-progress')->name('user-progress.')->group(function () {
+        Route::get('', [UserProgressController::class, 'index'])->name('index');
+        Route::get('data', [UserProgressController::class, 'getData'])->name('data');
+        Route::get('show/{id}', [UserProgressController::class, 'show'])->name('show');
     });
 });

@@ -23,7 +23,8 @@ class Lesson extends Model
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'has_simulation' => 'boolean',
     ];
 
     public function quiz()
@@ -159,5 +160,4 @@ class Lesson extends Model
             }
         }
     }
-
 }

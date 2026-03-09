@@ -14,7 +14,7 @@ use Yajra\DataTables\DataTables;
 
 class UserProgressController extends Controller
 {
-     /**
+    /**
      * User Progress List
      */
     public function index()
@@ -31,12 +31,15 @@ class UserProgressController extends Controller
             ->with(['studentLessons'])
             ->select(['id', 'first_name', 'last_name', 'email', 'created_at']);
 
+        // Pre-compute once to avoid N+1 in the DataTable callback
+        $totalActiveLessons = Lesson::where('is_active', true)->count();
+
         return DataTables::of($users)
             ->addColumn('lessons_completed', function ($user) {
                 return $user->studentLessons()->whereNotNull('completed_at')->count();
             })
-            ->addColumn('total_lessons', function ($user) {
-                return Lesson::where('is_active', true)->count();
+            ->addColumn('total_lessons', function ($user) use ($totalActiveLessons) {
+                return $totalActiveLessons;
             })
             ->addColumn('quiz_avg', function ($user) {
                 $avg = UserQuizAttempt::where('user_id', $user->id)
@@ -48,13 +51,15 @@ class UserProgressController extends Controller
                 $attempts = SimulationAttempt::where('user_id', $user->id)
                     ->whereNotNull('completed_at')
                     ->get();
-                
+
                 if ($attempts->isEmpty()) return 'N/A';
-                
-                $avgPercentage = $attempts->avg(function($attempt) {
-                    return ($attempt->score / $attempt->total_scenarios) * 100;
+
+                $avgPercentage = $attempts->avg(function ($attempt) {
+                    return $attempt->total_scenarios > 0
+                        ? ($attempt->score / $attempt->total_scenarios) * 100
+                        : 0;
                 });
-                
+
                 return round($avgPercentage, 2) . '%';
             })
             ->addColumn('actions', function ($user) {
@@ -70,18 +75,9 @@ class UserProgressController extends Controller
                 return $user->created_at->format('Y-m-d H:i:s');
             })
             ->orderColumn('lessons_completed', function ($query, $order) {
-                // Custom ordering for lessons completed
-                $query->withCount(['studentLessons as completed_count' => function($q) {
+                $query->withCount(['studentLessons as completed_count' => function ($q) {
                     $q->whereNotNull('completed_at');
                 }])->orderBy('completed_count', $order);
-            })
-            ->filterColumn('quiz_avg', function($query, $keyword) {
-                // Allow filtering by quiz average
-                // This is optional - you can remove if not needed
-            })
-            ->filterColumn('simulation_avg', function($query, $keyword) {
-                // Allow filtering by simulation average
-                // This is optional - you can remove if not needed
             })
             ->rawColumns(['actions'])
             ->make(true);
@@ -97,13 +93,13 @@ class UserProgressController extends Controller
 
         // Get all lessons with progress
         $lessons = Lesson::where('is_active', true)
-            ->with(['studentLessons' => function($q) use ($userId) {
+            ->with(['studentLessons' => function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             }])
             ->get()
-            ->map(function($lesson) use ($userId) {
+            ->map(function ($lesson) use ($userId) {
                 $progress = $lesson->studentLessons->first();
-                
+
                 return [
                     'id' => $lesson->id,
                     'title' => $lesson->title,
@@ -135,7 +131,7 @@ class UserProgressController extends Controller
             ->whereNotNull('completed_at')
             ->with('lesson')
             ->get()
-            ->map(function($progress) {
+            ->map(function ($progress) {
                 $seconds = $progress->created_at->diffInSeconds($progress->completed_at);
                 return [
                     'lesson_id' => $progress->lesson_id,

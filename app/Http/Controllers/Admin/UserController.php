@@ -52,20 +52,20 @@ class UserController extends Controller
         $validated = $request->validate([
             'first_name'     => 'required|string|max:255',
             'last_name'     => 'required|string|max:255',
-            'user_type'     => 'required',
+            'user_type'     => 'required|in:USER,ADMIN',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
         ]);
 
-        $user = new User();
-        $user->first_name = $validated['first_name'];
-        $user->last_name = $validated['last_name'];
-        $user->user_type = $validated['user_type'];
-        $user->email = $validated['email'];
-        $user->password = Hash::make($validated['password']);
-        $user->user_type = 'ADMIN';
+        User::create([
+            'first_name' => $validated['first_name'],
+            'last_name'  => $validated['last_name'],
+            'user_type'  => $validated['user_type'],
+            'email'      => $validated['email'],
+            'password'   => Hash::make($validated['password']),
+        ]);
 
-        $user->save();
+        return response()->json(['success' => true, 'message' => 'User created successfully.']);
     }
 
     public function edit($id) 
@@ -90,7 +90,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'first_name'     => 'required|string|max:255',
             'last_name'     => 'required|string|max:255',
-            'user_type'     => 'required',
+            'user_type'     => 'required|in:USER,ADMIN',
             'email' => [
                 'required',
                 'email',
@@ -109,7 +109,9 @@ class UserController extends Controller
             $user->password = Hash::make($validated['password']);
         }
 
-        $user->update();
+        $user->save();
+
+        return response()->json(['success' => true, 'message' => 'User updated successfully.']);
     }
 
     public function destroy($id)
@@ -139,7 +141,7 @@ class UserController extends Controller
         } catch (DecryptException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid user ID. Could not delete.'
+                'message' => 'Invalid user ID.'
             ], 400);
         } catch (\Exception $e) {
             return response()->json([

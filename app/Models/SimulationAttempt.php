@@ -45,11 +45,14 @@ class SimulationAttempt extends Model
     }
 
     /**
-     * Check if simulation was passed
+     * Check if simulation was passed (70% or higher)
      */
     public function isPassed(): bool
     {
-        // 70% or higher to pass
+        if ($this->total_scenarios === 0) {
+            return false;
+        }
+
         return ($this->score / $this->total_scenarios) * 100 >= 70;
     }
 

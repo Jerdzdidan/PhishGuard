@@ -9,60 +9,59 @@ use App\Models\StudentLesson;
 use App\Models\User;
 use App\Models\UserQuizAttempt;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
-        /**
+    // ─── Shared Constants ───────────────────────────────────────────────
+
+    private const DIFFICULTY_THRESHOLDS = [
+        80 => 'Easy',
+        60 => 'Medium',
+        40 => 'Hard',
+    ];
+    private const DIFFICULTY_DEFAULT = 'Very Hard';
+
+    // ─── Public Actions ─────────────────────────────────────────────────
+
+    /**
      * Analytics Overview
      */
     public function overview(Request $request)
     {
-        // Date filtering
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
-        
-        // General Statistics
+
         $stats = [
-            'total_users' => User::where('user_type', 'USER')->count(),
-            'total_lessons' => Lesson::where('is_active', true)->count(),
-            'total_quizzes' => UserQuizAttempt::when($startDate, function($q) use ($startDate) {
-                return $q->whereDate('completed_at', '>=', $startDate);
-            })->when($endDate, function($q) use ($endDate) {
-                return $q->whereDate('completed_at', '<=', $endDate);
-            })->count(),
+            'total_users'       => User::where('user_type', 'USER')->count(),
+            'total_lessons'     => Lesson::where('is_active', true)->count(),
+            'total_quizzes'     => UserQuizAttempt::query()
+                ->when($startDate, fn($q) => $q->whereDate('completed_at', '>=', $startDate))
+                ->when($endDate, fn($q) => $q->whereDate('completed_at', '<=', $endDate))
+                ->count(),
             'total_simulations' => SimulationAttempt::whereNotNull('completed_at')
-                ->when($startDate, function($q) use ($startDate) {
-                    return $q->whereDate('completed_at', '>=', $startDate);
-                })->when($endDate, function($q) use ($endDate) {
-                    return $q->whereDate('completed_at', '<=', $endDate);
-                })->count(),
+                ->when($startDate, fn($q) => $q->whereDate('completed_at', '>=', $startDate))
+                ->when($endDate, fn($q) => $q->whereDate('completed_at', '<=', $endDate))
+                ->count(),
         ];
 
-        // Completion Rates by Lesson
         $lessonCompletionRates = Lesson::withCount([
-            'studentLessons as completed_count' => function($q) {
-                $q->whereNotNull('completed_at');
-            },
-            'studentLessons as started_count'
-        ])->where('is_active', true)->get()->map(function($lesson) {
-            return [
-                'lesson_id' => $lesson->id,
-                'title' => $lesson->title,
-                'completion_rate' => $lesson->started_count > 0 
-                    ? round(($lesson->completed_count / $lesson->started_count) * 100, 2)
-                    : 0,
-                'completed' => $lesson->completed_count,
-                'started' => $lesson->started_count
-            ];
-        });
+            'studentLessons as completed_count' => fn($q) => $q->whereNotNull('completed_at'),
+            'studentLessons as started_count',
+        ])->where('is_active', true)->get()->map(fn($lesson) => [
+            'lesson_id'       => $lesson->id,
+            'title'           => $lesson->title,
+            'completion_rate' => $lesson->started_count > 0
+                ? round(($lesson->completed_count / $lesson->started_count) * 100, 2)
+                : 0,
+            'completed'       => $lesson->completed_count,
+            'started'         => $lesson->started_count,
+        ]);
 
-        // Quiz Statistics
-        $quizStats = UserQuizAttempt::when($startDate, function($q) use ($startDate) {
-                return $q->whereDate('completed_at', '>=', $startDate);
-            })->when($endDate, function($q) use ($endDate) {
-                return $q->whereDate('completed_at', '<=', $endDate);
-            })
+        $quizStats = UserQuizAttempt::query()
+            ->when($startDate, fn($q) => $q->whereDate('completed_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('completed_at', '<=', $endDate))
             ->selectRaw('
                 AVG(score) as avg_score,
                 AVG(completion_time) as avg_time,
@@ -71,13 +70,9 @@ class AnalyticsController extends Controller
             ')
             ->first();
 
-        // Simulation Statistics
         $simulationStats = SimulationAttempt::whereNotNull('completed_at')
-            ->when($startDate, function($q) use ($startDate) {
-                return $q->whereDate('completed_at', '>=', $startDate);
-            })->when($endDate, function($q) use ($endDate) {
-                return $q->whereDate('completed_at', '<=', $endDate);
-            })
+            ->when($startDate, fn($q) => $q->whereDate('completed_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('completed_at', '<=', $endDate))
             ->selectRaw('
                 AVG(score / total_scenarios * 100) as avg_percentage,
                 AVG(time_taken) as avg_time,
@@ -86,34 +81,33 @@ class AnalyticsController extends Controller
             ')
             ->first();
 
-        // Time spent per lesson
         $timeSpentPerLesson = Lesson::where('is_active', true)
             ->select('lessons.id', 'lessons.title')
             ->selectRaw('
                 (
-                    SELECT AVG(completion_time) 
-                    FROM user_quiz_attempts 
-                    JOIN quizzes ON user_quiz_attempts.quiz_id = quizzes.id 
-                    WHERE quizzes.lesson_id = lessons.id 
+                    SELECT AVG(completion_time)
+                    FROM user_quiz_attempts
+                    JOIN quizzes ON user_quiz_attempts.quiz_id = quizzes.id
+                    WHERE quizzes.lesson_id = lessons.id
                     AND user_quiz_attempts.completed_at IS NOT NULL
                 ) as quiz_time,
                 (
-                    SELECT AVG(time_taken) 
-                    FROM simulation_attempts 
-                    WHERE lesson_id = lessons.id 
+                    SELECT AVG(time_taken)
+                    FROM simulation_attempts
+                    WHERE lesson_id = lessons.id
                     AND completed_at IS NOT NULL
                 ) as sim_time
             ')
             ->get()
-            ->map(function($lesson) {
+            ->map(function ($lesson) {
                 $quizTime = $lesson->quiz_time ?? 0;
                 $simTime = $lesson->sim_time ?? 0;
-                $avgTime = ($quizTime + $simTime) / 2; // Average of both, or pick whichever exists
-                
+                $avgTime = ($quizTime + $simTime) / 2;
+
                 return [
-                    'id' => $lesson->id,
-                    'title' => $lesson->title,
-                    'avg_time_seconds' => $avgTime
+                    'id'               => $lesson->id,
+                    'title'            => $lesson->title,
+                    'avg_time_seconds' => $avgTime,
                 ];
             });
 
@@ -134,95 +128,16 @@ class AnalyticsController extends Controller
         $lessonId = $request->input('lesson_id');
         $lessons = Lesson::where('is_active', true)->get();
 
-        $questionDifficulty = [];
-        $aggregatedQuestions = [];
+        $attempts = UserQuizAttempt::whereNotNull('answers_data')
+            ->when($lessonId, fn($q) => $q->whereHas('quiz', fn($sq) => $sq->where('lesson_id', $lessonId)))
+            ->get();
 
-        if ($lessonId) {
-            // Per-lesson question analysis
-            $attempts = UserQuizAttempt::whereHas('quiz', function($q) use ($lessonId) {
-                $q->where('lesson_id', $lessonId);
-            })->whereNotNull('answers_data')->get();
+        $questionStats = $this->collectQuestionStats($attempts);
+        $difficultyData = $this->buildDifficultyArray($questionStats, 'question');
 
-            $questionStats = [];
-            foreach ($attempts as $attempt) {
-                $results = json_decode($attempt->answers_data, true);
-                foreach ($results as $result) {
-                    $qId = $result['question_id'];
-                    if (!isset($questionStats[$qId])) {
-                        $questionStats[$qId] = [
-                            'question_text' => $result['question_text'],
-                            'total_attempts' => 0,
-                            'correct_attempts' => 0
-                        ];
-                    }
-                    $questionStats[$qId]['total_attempts']++;
-                    if ($result['is_correct']) {
-                        $questionStats[$qId]['correct_attempts']++;
-                    }
-                }
-            }
-
-            foreach ($questionStats as $qId => $stats) {
-                $successRate = $stats['total_attempts'] > 0 
-                    ? round(($stats['correct_attempts'] / $stats['total_attempts']) * 100, 2)
-                    : 0;
-                
-                $questionDifficulty[] = [
-                    'question_id' => $qId,
-                    'question_text' => $stats['question_text'],
-                    'success_rate' => $successRate,
-                    'total_attempts' => $stats['total_attempts'],
-                    'correct_attempts' => $stats['correct_attempts'],
-                    'difficulty_level' => $this->getDifficultyLevel($successRate)
-                ];
-            }
-        } else {
-            // Aggregated across all lessons
-            $attempts = UserQuizAttempt::whereNotNull('answers_data')->get();
-
-            $questionStats = [];
-            foreach ($attempts as $attempt) {
-                $results = json_decode($attempt->answers_data, true);
-                foreach ($results as $result) {
-                    $qId = $result['question_id'];
-                    if (!isset($questionStats[$qId])) {
-                        $questionStats[$qId] = [
-                            'question_text' => $result['question_text'],
-                            'total_attempts' => 0,
-                            'correct_attempts' => 0
-                        ];
-                    }
-                    $questionStats[$qId]['total_attempts']++;
-                    if ($result['is_correct']) {
-                        $questionStats[$qId]['correct_attempts']++;
-                    }
-                }
-            }
-
-            foreach ($questionStats as $qId => $stats) {
-                $successRate = $stats['total_attempts'] > 0 
-                    ? round(($stats['correct_attempts'] / $stats['total_attempts']) * 100, 2)
-                    : 0;
-                
-                $aggregatedQuestions[] = [
-                    'question_id' => $qId,
-                    'question_text' => $stats['question_text'],
-                    'success_rate' => $successRate,
-                    'total_attempts' => $stats['total_attempts'],
-                    'correct_attempts' => $stats['correct_attempts'],
-                    'difficulty_level' => $this->getDifficultyLevel($successRate)
-                ];
-            }
-        }
-
-        // Sort by difficulty (lowest success rate first = hardest)
-        usort($questionDifficulty, function($a, $b) {
-            return $a['success_rate'] <=> $b['success_rate'];
-        });
-
-        usort($aggregatedQuestions, function($a, $b) {
-            return $a['success_rate'] <=> $b['success_rate'];
-        });
+        // Use the correct variable name based on whether a lesson was selected
+        $questionDifficulty = $lessonId ? $difficultyData : [];
+        $aggregatedQuestions = $lessonId ? [] : $difficultyData;
 
         return view('admin.analytics.quiz', compact(
             'lessons',
@@ -240,130 +155,16 @@ class AnalyticsController extends Controller
         $lessonId = $request->input('lesson_id');
         $lessons = Lesson::where('is_active', true)->where('has_simulation', true)->get();
 
-        $scenarioDifficulty = [];
-        $aggregatedScenarios = [];
-        $ctrData = [];
+        $attempts = SimulationAttempt::whereNotNull('completed_at')
+            ->when($lessonId, fn($q) => $q->where('lesson_id', $lessonId))
+            ->get();
 
-        if ($lessonId) {
-            // Per-lesson scenario analysis
-            $attempts = SimulationAttempt::where('lesson_id', $lessonId)
-                ->whereNotNull('completed_at')
-                ->get();
+        $scenarioStats = $this->collectScenarioStats($attempts);
+        $difficultyData = $this->buildDifficultyArray($scenarioStats, 'scenario');
+        $ctrData = $this->collectClickData($attempts);
 
-            $scenarioStats = [];
-            $totalClicks = 0;
-            $actionMenuClicks = 0;
-
-            foreach ($attempts as $attempt) {
-                $results = $attempt->scenario_results;
-                foreach ($results as $result) {
-                    $scenario = $result['scenario'];
-                    if (!isset($scenarioStats[$scenario])) {
-                        $scenarioStats[$scenario] = [
-                            'total_attempts' => 0,
-                            'correct_attempts' => 0
-                        ];
-                    }
-                    $scenarioStats[$scenario]['total_attempts']++;
-                    if ($result['correct'] === true || $result['correct'] === 'true') {
-                        $scenarioStats[$scenario]['correct_attempts']++;
-                    }
-                }
-
-                // CTR Analysis
-                if ($attempt->click_data) {
-                    foreach ($attempt->click_data as $click) {
-                        $totalClicks++;
-                        if (isset($click['action']) && $click['action'] === 'opened_action_menu') {
-                            $actionMenuClicks++;
-                        }
-                    }
-                }
-            }
-
-            foreach ($scenarioStats as $scenario => $stats) {
-                $successRate = $stats['total_attempts'] > 0 
-                    ? round(($stats['correct_attempts'] / $stats['total_attempts']) * 100, 2)
-                    : 0;
-                
-                $scenarioDifficulty[] = [
-                    'scenario' => $scenario,
-                    'success_rate' => $successRate,
-                    'total_attempts' => $stats['total_attempts'],
-                    'correct_attempts' => $stats['correct_attempts'],
-                    'difficulty_level' => $this->getDifficultyLevel($successRate)
-                ];
-            }
-
-            $ctrData = [
-                'total_clicks' => $totalClicks,
-                'action_menu_clicks' => $actionMenuClicks,
-                'ctr' => $totalClicks > 0 ? round(($actionMenuClicks / $totalClicks) * 100, 2) : 0
-            ];
-        } else {
-            // Aggregated across all lessons
-            $attempts = SimulationAttempt::whereNotNull('completed_at')->get();
-
-            $scenarioStats = [];
-            $totalClicks = 0;
-            $actionMenuClicks = 0;
-
-            foreach ($attempts as $attempt) {
-                $results = $attempt->scenario_results;
-                foreach ($results as $result) {
-                    $scenario = $result['scenario'];
-                    if (!isset($scenarioStats[$scenario])) {
-                        $scenarioStats[$scenario] = [
-                            'total_attempts' => 0,
-                            'correct_attempts' => 0
-                        ];
-                    }
-                    $scenarioStats[$scenario]['total_attempts']++;
-                    if ($result['correct'] === true || $result['correct'] === 'true') {
-                        $scenarioStats[$scenario]['correct_attempts']++;
-                    }
-                }
-
-                // CTR Analysis
-                if ($attempt->click_data) {
-                    foreach ($attempt->click_data as $click) {
-                        $totalClicks++;
-                        if (isset($click['action']) && $click['action'] === 'opened_action_menu') {
-                            $actionMenuClicks++;
-                        }
-                    }
-                }
-            }
-
-            foreach ($scenarioStats as $scenario => $stats) {
-                $successRate = $stats['total_attempts'] > 0 
-                    ? round(($stats['correct_attempts'] / $stats['total_attempts']) * 100, 2)
-                    : 0;
-                
-                $aggregatedScenarios[] = [
-                    'scenario' => $scenario,
-                    'success_rate' => $successRate,
-                    'total_attempts' => $stats['total_attempts'],
-                    'correct_attempts' => $stats['correct_attempts'],
-                    'difficulty_level' => $this->getDifficultyLevel($successRate)
-                ];
-            }
-
-            $ctrData = [
-                'total_clicks' => $totalClicks,
-                'action_menu_clicks' => $actionMenuClicks,
-                'ctr' => $totalClicks > 0 ? round(($actionMenuClicks / $totalClicks) * 100, 2) : 0
-            ];
-        }
-
-        // Sort by difficulty
-        usort($scenarioDifficulty, function($a, $b) {
-            return $a['success_rate'] <=> $b['success_rate'];
-        });
-
-        usort($aggregatedScenarios, function($a, $b) {
-            return $a['success_rate'] <=> $b['success_rate'];
-        });
+        $scenarioDifficulty = $lessonId ? $difficultyData : [];
+        $aggregatedScenarios = $lessonId ? [] : $difficultyData;
 
         return view('admin.analytics.simulation', compact(
             'lessons',
@@ -379,10 +180,7 @@ class AnalyticsController extends Controller
      */
     public function heatmap(Request $request)
     {
-        // Quiz Heatmap Data
         $quizHeatmap = $this->getQuizHeatmapData();
-        
-        // Simulation Heatmap Data
         $simulationHeatmap = $this->getSimulationHeatmapData();
 
         return view('admin.analytics.heatmap', compact('quizHeatmap', 'simulationHeatmap'));
@@ -393,128 +191,231 @@ class AnalyticsController extends Controller
      */
     public function export(Request $request)
     {
-        $type = $request->input('type'); // 'quiz' or 'simulation'
-        
+        $type = $request->input('type');
+
         if ($type === 'quiz') {
             return $this->exportQuizAnalytics($request);
         } elseif ($type === 'simulation') {
             return $this->exportSimulationAnalytics($request);
         }
-        
+
         return $this->exportOverview($request);
     }
 
-    // Helper Methods
-    private function getDifficultyLevel($successRate)
-    {
-        if ($successRate >= 80) return 'Easy';
-        if ($successRate >= 60) return 'Medium';
-        if ($successRate >= 40) return 'Hard';
-        return 'Very Hard';
-    }
+    // ─── Private Helpers: Statistics Collection ─────────────────────────
 
-    private function getQuizHeatmapData()
+    /**
+     * Collect per-question statistics from quiz attempts.
+     *
+     * @return array<int, array{question_text: string, total: int, correct: int}>
+     */
+    private function collectQuestionStats(Collection $attempts): array
     {
-        $attempts = UserQuizAttempt::whereNotNull('answers_data')->get();
-        $questionStats = [];
+        $stats = [];
 
         foreach ($attempts as $attempt) {
             $results = json_decode($attempt->answers_data, true);
+            if (!is_array($results)) {
+                continue;
+            }
+
             foreach ($results as $result) {
                 $qId = $result['question_id'];
-                if (!isset($questionStats[$qId])) {
-                    $questionStats[$qId] = [
-                        'question_text' => substr($result['question_text'], 0, 50) . '...',
-                        'total' => 0,
-                        'correct' => 0
+                if (!isset($stats[$qId])) {
+                    $stats[$qId] = [
+                        'question_text' => $result['question_text'],
+                        'total'         => 0,
+                        'correct'       => 0,
                     ];
                 }
-                $questionStats[$qId]['total']++;
+                $stats[$qId]['total']++;
                 if ($result['is_correct']) {
-                    $questionStats[$qId]['correct']++;
+                    $stats[$qId]['correct']++;
                 }
             }
         }
 
-        $heatmapData = [];
-        foreach ($questionStats as $qId => $stats) {
-            $successRate = $stats['total'] > 0 
-                ? round(($stats['correct'] / $stats['total']) * 100, 2)
-                : 0;
-            
-            $heatmapData[] = [
-                'id' => $qId,
-                'label' => $stats['question_text'],
-                'value' => $successRate
-            ];
-        }
-
-        return $heatmapData;
+        return $stats;
     }
 
-    private function getSimulationHeatmapData()
+    /**
+     * Collect per-scenario statistics from simulation attempts.
+     *
+     * @return array<string, array{total: int, correct: int}>
+     */
+    private function collectScenarioStats(Collection $attempts): array
     {
-        $attempts = SimulationAttempt::whereNotNull('completed_at')->get();
-        $scenarioStats = [];
+        $stats = [];
 
         foreach ($attempts as $attempt) {
+            if (!is_array($attempt->scenario_results)) {
+                continue;
+            }
+
             foreach ($attempt->scenario_results as $result) {
                 $scenario = $result['scenario'];
-                if (!isset($scenarioStats[$scenario])) {
-                    $scenarioStats[$scenario] = [
-                        'total' => 0,
-                        'correct' => 0
-                    ];
+                if (!isset($stats[$scenario])) {
+                    $stats[$scenario] = ['total' => 0, 'correct' => 0];
                 }
-                $scenarioStats[$scenario]['total']++;
+                $stats[$scenario]['total']++;
                 if ($result['correct'] === true || $result['correct'] === 'true') {
-                    $scenarioStats[$scenario]['correct']++;
+                    $stats[$scenario]['correct']++;
                 }
             }
         }
 
-        $heatmapData = [];
-        foreach ($scenarioStats as $scenario => $stats) {
-            $successRate = $stats['total'] > 0 
-                ? round(($stats['correct'] / $stats['total']) * 100, 2)
-                : 0;
-            
-            $heatmapData[] = [
-                'label' => $scenario,
-                'value' => $successRate
-            ];
-        }
-
-        return $heatmapData;
+        return $stats;
     }
 
-    private function exportOverview($request)
+    /**
+     * Collect click-through rate data from simulation attempts.
+     */
+    private function collectClickData(Collection $attempts): array
     {
-        // Implementation for CSV export
+        $totalClicks = 0;
+        $actionMenuClicks = 0;
+
+        foreach ($attempts as $attempt) {
+            if (!is_array($attempt->click_data)) {
+                continue;
+            }
+            foreach ($attempt->click_data as $click) {
+                $totalClicks++;
+                if (isset($click['action']) && $click['action'] === 'opened_action_menu') {
+                    $actionMenuClicks++;
+                }
+            }
+        }
+
+        return [
+            'total_clicks'       => $totalClicks,
+            'action_menu_clicks' => $actionMenuClicks,
+            'ctr'                => $totalClicks > 0 ? round(($actionMenuClicks / $totalClicks) * 100, 2) : 0,
+        ];
+    }
+
+    // ─── Private Helpers: Formatting ────────────────────────────────────
+
+    /**
+     * Build a sorted difficulty array from raw stats.
+     *
+     * @param  array   $stats    Collected stats keyed by ID/name
+     * @param  string  $type     'question' or 'scenario'
+     */
+    private function buildDifficultyArray(array $stats, string $type): array
+    {
+        $data = [];
+        $isQuestion = $type === 'question';
+
+        foreach ($stats as $key => $stat) {
+            $successRate = $stat['total'] > 0
+                ? round(($stat['correct'] / $stat['total']) * 100, 2)
+                : 0;
+
+            $entry = [
+                'success_rate'     => $successRate,
+                'total_attempts'   => $stat['total'],
+                'correct_attempts' => $stat['correct'],
+                'difficulty_level' => $this->getDifficultyLevel($successRate),
+            ];
+
+            if ($isQuestion) {
+                $entry['question_id'] = $key;
+                $entry['question_text'] = $stat['question_text'];
+            } else {
+                $entry['scenario'] = $key;
+            }
+
+            $data[] = $entry;
+        }
+
+        // Sort by difficulty (lowest success rate = hardest first)
+        usort($data, fn($a, $b) => $a['success_rate'] <=> $b['success_rate']);
+
+        return $data;
+    }
+
+    /**
+     * Map a success rate percentage to a human-readable difficulty label.
+     */
+    private function getDifficultyLevel(float $successRate): string
+    {
+        foreach (self::DIFFICULTY_THRESHOLDS as $threshold => $label) {
+            if ($successRate >= $threshold) {
+                return $label;
+            }
+        }
+
+        return self::DIFFICULTY_DEFAULT;
+    }
+
+    // ─── Private Helpers: Heatmap ───────────────────────────────────────
+
+    private function getQuizHeatmapData(): array
+    {
+        $attempts = UserQuizAttempt::whereNotNull('answers_data')->get();
+        $stats = $this->collectQuestionStats($attempts);
+
+        return array_values(array_map(fn($qId, $stat) => [
+            'id'    => $qId,
+            'label' => substr($stat['question_text'], 0, 50) . '...',
+            'value' => $stat['total'] > 0
+                ? round(($stat['correct'] / $stat['total']) * 100, 2)
+                : 0,
+        ], array_keys($stats), $stats));
+    }
+
+    private function getSimulationHeatmapData(): array
+    {
+        $attempts = SimulationAttempt::whereNotNull('completed_at')->get();
+        $stats = $this->collectScenarioStats($attempts);
+
+        return array_values(array_map(fn($scenario, $stat) => [
+            'label' => $scenario,
+            'value' => $stat['total'] > 0
+                ? round(($stat['correct'] / $stat['total']) * 100, 2)
+                : 0,
+        ], array_keys($stats), $stats));
+    }
+
+    // ─── Private Helpers: Export ─────────────────────────────────────────
+
+    private function exportOverview(Request $request)
+    {
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type'        => 'text/csv',
             'Content-Disposition' => 'attachment; filename="analytics_overview.csv"',
         ];
 
-        $callback = function() {
+        $callback = function () {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['Metric', 'Value']);
-            
-            // Add data rows here
-            
+
+            // TODO: Add data rows for overview export
+            fputcsv($file, ['Total Users', User::where('user_type', 'USER')->count()]);
+            fputcsv($file, ['Total Active Lessons', Lesson::where('is_active', true)->count()]);
+            fputcsv($file, ['Total Quiz Attempts', UserQuizAttempt::count()]);
+            fputcsv($file, ['Total Simulation Attempts', SimulationAttempt::whereNotNull('completed_at')->count()]);
+
             fclose($file);
         };
 
         return response()->stream($callback, 200, $headers);
     }
 
-    private function exportQuizAnalytics($request)
+    /**
+     * @todo Implement detailed quiz analytics CSV export
+     */
+    private function exportQuizAnalytics(Request $request)
     {
-        // Similar implementation for quiz analytics export
+        // TODO: Implement quiz analytics export
     }
 
-    private function exportSimulationAnalytics($request)
+    /**
+     * @todo Implement detailed simulation analytics CSV export
+     */
+    private function exportSimulationAnalytics(Request $request)
     {
-        // Similar implementation for simulation analytics export
+        // TODO: Implement simulation analytics export
     }
 }
