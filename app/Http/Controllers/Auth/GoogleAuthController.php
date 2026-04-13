@@ -13,7 +13,7 @@ use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
-        public function redirectToGoogle()
+    public function redirectToGoogle()
     {
         return Socialite::driver('google')->redirect();
     }
@@ -26,25 +26,43 @@ class GoogleAuthController extends Controller
             $user = User::where('email', $googleUser->getEmail())->first();
             
             if ($user) {
+                // Existing user - link Google ID if not yet linked
                 if (!$user->google_id) {
                     $user->update(['google_id' => $googleUser->getId()]);
                 }
+
+                // Check if user is active
+                if (!$user->status) {
+                    return redirect()->route('auth.sign-in')->with('error', 'Your account is inactive.');
+                }
             } else {
+                // New user - create account with Google
+                $nameParts = explode(' ', $googleUser->getName(), 2);
+                $firstName = $nameParts[0] ?? '';
+                $lastName = $nameParts[1] ?? '';
+
                 $user = User::create([
-                    'name' => $googleUser->getName(),
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
                     'email' => $googleUser->getEmail(),
                     'google_id' => $googleUser->getId(),
+                    'user_type' => 'USER',
                     'password' => Hash::make(Str::random(16)), 
                     'email_verified_at' => now(),
                 ]);
             }
             
             Auth::login($user);
-            
-            return redirect()->intended('dashboard');
+
+            // Redirect based on user type
+            if ($user->user_type === 'USER') {
+                return redirect()->route('user.home');
+            } else {
+                return redirect()->route('admin.home');
+            }
             
         } catch (Exception $e) {
-            return redirect('login')->with('error', 'Failed to login with Google');
+            return redirect()->route('auth.sign-in')->with('error', 'Failed to login with Google. Please try again.');
         }
     }
 }

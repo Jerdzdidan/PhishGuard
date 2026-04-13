@@ -133,6 +133,9 @@ MY CERTIFICATE
         <a href="{{ route('certificate.download') }}" class="btn btn-success btn-download" target="_blank">
             <i class="ri-download-line me-2"></i> Download PDF Certificate
         </a>
+        <button type="button" class="btn btn-primary btn-download" id="sendEmailBtn">
+            <i class="ri-mail-send-line me-2"></i> Send to Email
+        </button>
         <a href="{{ route('user.home') }}" class="btn btn-label-secondary btn-download">
             <i class="ri-arrow-left-line me-2"></i> Back to Lessons
         </a>
@@ -141,7 +144,7 @@ MY CERTIFICATE
     <div class="alert alert-info mt-4">
         <i class="ri-information-line me-2"></i>
         <strong>Note:</strong> Your certificate is ready for download in PDF format (11" x 8.5" landscape). 
-        You can print it or share it digitally to showcase your achievement in cybersecurity awareness!
+        You can print it, share it digitally, or send it to your email to showcase your achievement!
     </div>
 </div>
 @endsection
@@ -158,6 +161,43 @@ $(document).ready(function() {
             confirmButtonColor: '#1E7F5C',
         });
     @endif
+
+    // Send certificate to email
+    $('#sendEmailBtn').on('click', function() {
+        const $btn = $(this);
+        
+        Swal.fire({
+            title: 'Send Certificate to Email',
+            html: `Your certificate will be sent to <strong>{{ Auth::user()->email }}</strong>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#696cff',
+            confirmButtonText: '<i class="ri-mail-send-line me-1"></i> Send',
+            cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return $.ajax({
+                    url: "{{ route('certificate.send-email') }}",
+                    method: 'POST',
+                    data: { _token: '{{ csrf_token() }}' },
+                }).then(response => {
+                    return response;
+                }).catch(error => {
+                    Swal.showValidationMessage(error.responseJSON?.message || 'Failed to send email');
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Email Sent!',
+                    text: result.value.message,
+                    confirmButtonColor: '#1E7F5C',
+                });
+            }
+        });
+    });
 });
 </script>
 @endsection

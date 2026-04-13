@@ -1,14 +1,18 @@
 @extends('admin.layout.sidebar.bar')
 
 @section('menu_items')
-{{-- 
-<x-sidebar.item route='admin.home' name='Dashboard' icon='menu-icon tf-icons bx bxs-dashboard'/> --}}
 
 <li class="menu-header small text-uppercase">
     <span class="menu-header-text">Core</span>
 </li>
 
 <x-sidebar.item route='admin.lessons.index' name='Lessons' icon='menu-icon tf-icons bx bxs-book'/>
+
+{{-- Sections - visible to both admin and teacher --}}
+<x-sidebar.item route='admin.sections.index' name='Sections' icon='menu-icon tf-icons bx bxs-group'/>
+
+{{-- Simulations --}}
+{{-- <x-sidebar.item route='admin.scenarios.index' name='Simulations' icon='menu-icon tf-icons bx bxs-shield'/> --}}
 
 <li class="menu-header small text-uppercase">
     <span class="menu-header-text">Insights</span>
@@ -36,11 +40,11 @@
                 <div data-i18n="Simulation Analytics">Simulation Analytics</div>
             </a>
         </li>
-        {{-- <li class="menu-item {{ request()->routeIs('admin.analytics.heatmap') ? 'active' : '' }}">
-            <a href="{{ route('admin.analytics.heatmap') }}" class="menu-link">
-                <div data-i18n="Difficulty Heatmap">Difficulty Heatmap</div>
+        <li class="menu-item {{ request()->routeIs('admin.analytics.assessment') ? 'active' : '' }}">
+            <a href="{{ route('admin.analytics.assessment') }}" class="menu-link">
+                <div data-i18n="Assessment Analytics">Assessment Analytics</div>
             </a>
-        </li> --}}
+        </li>
     </ul>
 </li>
 
@@ -59,10 +63,12 @@
     </ul>
 </li>
 
+@if(auth()->user()->isAdmin())
 <li class="menu-header small text-uppercase">
     <span class="menu-header-text">Management</span>
 </li>
 
 <x-sidebar.item route='admin.users.index' name='Users' icon='menu-icon tf-icons bx bxs-user' />
+@endif
 
 @endsection

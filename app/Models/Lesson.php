@@ -19,7 +19,8 @@ class Lesson extends Model
         'content',
         'is_active',
         'prerequisite_lesson_id',
-        'has_simulation'
+        'has_simulation',
+        'created_by',
     ];
 
     protected $casts = [
@@ -29,6 +30,26 @@ class Lesson extends Model
     public function quiz()
     {
         return $this->hasOne(Quiz::class);
+    }
+
+    public function lectureFiles()
+    {
+        return $this->hasMany(LectureFile::class);
+    }
+
+    public function scenarios()
+    {
+        return $this->hasMany(Scenario::class)->orderBy('order');
+    }
+
+    public function sections()
+    {
+        return $this->belongsToMany(Section::class, 'section_lessons')->withTimestamps();
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function prerequisiteLesson()

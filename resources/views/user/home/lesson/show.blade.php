@@ -86,6 +86,35 @@ LESSONS
           </div>
         </div>
       </div>
+
+      <!-- Lecture Files -->
+      @if($lesson->lectureFiles && $lesson->lectureFiles->count() > 0)
+      <div class="card mt-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="bx bxs-file me-2"></i>Lecture Files</h5>
+          </div>
+          <div class="card-body">
+              <div class="list-group list-group-flush">
+                  @foreach($lesson->lectureFiles as $file)
+                  <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                      <div class="d-flex align-items-center">
+                          <i class="{{ $file->file_icon }} me-2 fs-5"></i>
+                          <div>
+                              <a href="{{ route('lessons.lecture.download', Crypt::encryptString($file->id)) }}" class="fw-medium text-body">{{ $file->title }}</a>
+                              <small class="d-block text-muted">{{ $file->formatted_size }} · {{ strtoupper($file->file_type) }}</small>
+                          </div>
+                      </div>
+                      <div>
+                          <a href="{{ route('lessons.lecture.download', Crypt::encryptString($file->id)) }}" class="btn btn-sm btn-icon btn-outline-primary me-1" title="Download">
+                              <i class="bx bx-download"></i>
+                          </a>
+                      </div>
+                  </div>
+                  @endforeach
+              </div>
+          </div>
+      </div>
+      @endif
     </div>
 @endsection
 

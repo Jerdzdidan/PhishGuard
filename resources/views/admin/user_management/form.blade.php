@@ -47,6 +47,7 @@
         icon="fa-solid fa-tags"
         :options="[
             ['value' => 'ADMIN', 'text' => 'Admin'],
+            ['value' => 'TEACHER', 'text' => 'Teacher'],
             ['value' => 'USER', 'text' => 'User'],
         ]"
         placeholder="Select User Type"

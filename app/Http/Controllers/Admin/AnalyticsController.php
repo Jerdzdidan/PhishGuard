@@ -21,17 +21,24 @@ class AnalyticsController extends Controller
         // Date filtering
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+
+        // Teacher scoping
+        $studentIds = $this->getTeacherStudentIds();
         
         // General Statistics
         $stats = [
-            'total_users' => User::where('user_type', 'USER')->count(),
+            'total_users' => $studentIds
+                ? count($studentIds)
+                : User::where('user_type', 'USER')->count(),
             'total_lessons' => Lesson::where('is_active', true)->count(),
-            'total_quizzes' => UserQuizAttempt::when($startDate, function($q) use ($startDate) {
-                return $q->whereDate('completed_at', '>=', $startDate);
-            })->when($endDate, function($q) use ($endDate) {
-                return $q->whereDate('completed_at', '<=', $endDate);
-            })->count(),
+            'total_quizzes' => UserQuizAttempt::when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
+                ->when($startDate, function($q) use ($startDate) {
+                    return $q->whereDate('completed_at', '>=', $startDate);
+                })->when($endDate, function($q) use ($endDate) {
+                    return $q->whereDate('completed_at', '<=', $endDate);
+                })->count(),
             'total_simulations' => SimulationAttempt::whereNotNull('completed_at')
+                ->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
                 ->when($startDate, function($q) use ($startDate) {
                     return $q->whereDate('completed_at', '>=', $startDate);
                 })->when($endDate, function($q) use ($endDate) {
@@ -41,10 +48,13 @@ class AnalyticsController extends Controller
 
         // Completion Rates by Lesson
         $lessonCompletionRates = Lesson::withCount([
-            'studentLessons as completed_count' => function($q) {
+            'studentLessons as completed_count' => function($q) use ($studentIds) {
                 $q->whereNotNull('completed_at');
+                if ($studentIds) $q->whereIn('user_id', $studentIds);
             },
-            'studentLessons as started_count'
+            'studentLessons as started_count' => function($q) use ($studentIds) {
+                if ($studentIds) $q->whereIn('user_id', $studentIds);
+            }
         ])->where('is_active', true)->get()->map(function($lesson) {
             return [
                 'lesson_id' => $lesson->id,
@@ -58,7 +68,8 @@ class AnalyticsController extends Controller
         });
 
         // Quiz Statistics
-        $quizStats = UserQuizAttempt::when($startDate, function($q) use ($startDate) {
+        $quizStats = UserQuizAttempt::when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
+            ->when($startDate, function($q) use ($startDate) {
                 return $q->whereDate('completed_at', '>=', $startDate);
             })->when($endDate, function($q) use ($endDate) {
                 return $q->whereDate('completed_at', '<=', $endDate);
@@ -73,6 +84,7 @@ class AnalyticsController extends Controller
 
         // Simulation Statistics
         $simulationStats = SimulationAttempt::whereNotNull('completed_at')
+            ->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
             ->when($startDate, function($q) use ($startDate) {
                 return $q->whereDate('completed_at', '>=', $startDate);
             })->when($endDate, function($q) use ($endDate) {
@@ -133,6 +145,7 @@ class AnalyticsController extends Controller
     {
         $lessonId = $request->input('lesson_id');
         $lessons = Lesson::where('is_active', true)->get();
+        $studentIds = $this->getTeacherStudentIds();
 
         $questionDifficulty = [];
         $aggregatedQuestions = [];
@@ -141,7 +154,8 @@ class AnalyticsController extends Controller
             // Per-lesson question analysis
             $attempts = UserQuizAttempt::whereHas('quiz', function($q) use ($lessonId) {
                 $q->where('lesson_id', $lessonId);
-            })->whereNotNull('answers_data')->get();
+            })->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
+              ->whereNotNull('answers_data')->get();
 
             $questionStats = [];
             foreach ($attempts as $attempt) {
@@ -178,7 +192,9 @@ class AnalyticsController extends Controller
             }
         } else {
             // Aggregated across all lessons
-            $attempts = UserQuizAttempt::whereNotNull('answers_data')->get();
+            $attempts = UserQuizAttempt::whereNotNull('answers_data')
+                ->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
+                ->get();
 
             $questionStats = [];
             foreach ($attempts as $attempt) {
@@ -239,6 +255,7 @@ class AnalyticsController extends Controller
     {
         $lessonId = $request->input('lesson_id');
         $lessons = Lesson::where('is_active', true)->where('has_simulation', true)->get();
+        $studentIds = $this->getTeacherStudentIds();
 
         $scenarioDifficulty = [];
         $aggregatedScenarios = [];
@@ -247,6 +264,7 @@ class AnalyticsController extends Controller
         if ($lessonId) {
             // Per-lesson scenario analysis
             $attempts = SimulationAttempt::where('lesson_id', $lessonId)
+                ->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
                 ->whereNotNull('completed_at')
                 ->get();
 
@@ -302,7 +320,9 @@ class AnalyticsController extends Controller
             ];
         } else {
             // Aggregated across all lessons
-            $attempts = SimulationAttempt::whereNotNull('completed_at')->get();
+            $attempts = SimulationAttempt::whereNotNull('completed_at')
+                ->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
+                ->get();
 
             $scenarioStats = [];
             $totalClicks = 0;
@@ -379,11 +399,13 @@ class AnalyticsController extends Controller
      */
     public function heatmap(Request $request)
     {
+        $studentIds = $this->getTeacherStudentIds();
+
         // Quiz Heatmap Data
-        $quizHeatmap = $this->getQuizHeatmapData();
+        $quizHeatmap = $this->getQuizHeatmapData($studentIds);
         
         // Simulation Heatmap Data
-        $simulationHeatmap = $this->getSimulationHeatmapData();
+        $simulationHeatmap = $this->getSimulationHeatmapData($studentIds);
 
         return view('admin.analytics.heatmap', compact('quizHeatmap', 'simulationHeatmap'));
     }
@@ -405,6 +427,70 @@ class AnalyticsController extends Controller
     }
 
     // Helper Methods
+
+    /**
+     * Assessment Analytics - Pre vs Post comparison
+     */
+    public function assessmentAnalytics(Request $request)
+    {
+        $user = auth()->user();
+        $sectionId = $request->input('section_id');
+
+        // Get relevant sections
+        $sectionsQuery = \App\Models\Section::query();
+        if ($user->isTeacher()) {
+            $sectionsQuery->where('teacher_id', $user->id);
+        }
+        $sections = $sectionsQuery->get();
+
+        // Get assessment data
+        $attemptsQuery = \App\Models\AssessmentAttempt::whereNotNull('completed_at');
+        
+        if ($user->isTeacher()) {
+            $sectionIds = $sections->pluck('id');
+            $attemptsQuery->whereIn('section_id', $sectionIds);
+        }
+
+        if ($sectionId) {
+            $attemptsQuery->where('section_id', $sectionId);
+        }
+
+        $attempts = $attemptsQuery->with('user', 'section')->get();
+
+        // Separate pre and post
+        $preAttempts = $attempts->where('type', 'pre');
+        $postAttempts = $attempts->where('type', 'post');
+
+        // Stats
+        $stats = [
+            'total_pre' => $preAttempts->count(),
+            'total_post' => $postAttempts->count(),
+            'avg_pre_score' => $preAttempts->count() > 0 
+                ? round($preAttempts->avg(fn($a) => $a->percentage), 2) : 0,
+            'avg_post_score' => $postAttempts->count() > 0 
+                ? round($postAttempts->avg(fn($a) => $a->percentage), 2) : 0,
+        ];
+        $stats['avg_improvement'] = $stats['avg_post_score'] - $stats['avg_pre_score'];
+
+        // Per-student comparison (students who took both)
+        $studentComparisons = [];
+        $postByUser = $postAttempts->groupBy('user_id');
+        foreach ($preAttempts as $pre) {
+            $post = $postByUser->get($pre->user_id)?->first();
+            if ($post) {
+                $studentComparisons[] = [
+                    'student' => $pre->user->first_name . ' ' . $pre->user->last_name,
+                    'section' => $pre->section->name,
+                    'pre_score' => $pre->percentage,
+                    'post_score' => $post->percentage,
+                    'improvement' => $post->percentage - $pre->percentage,
+                ];
+            }
+        }
+
+        return view('admin.analytics.assessment', compact('sections', 'stats', 'studentComparisons', 'sectionId'));
+    }
+
     private function getDifficultyLevel($successRate)
     {
         if ($successRate >= 80) return 'Easy';
@@ -413,9 +499,30 @@ class AnalyticsController extends Controller
         return 'Very Hard';
     }
 
-    private function getQuizHeatmapData()
+    /**
+     * Get student IDs scoped to teacher's sections.
+     * Returns null for admins (no filtering needed).
+     */
+    private function getTeacherStudentIds(): ?array
     {
-        $attempts = UserQuizAttempt::whereNotNull('answers_data')->get();
+        $user = auth()->user();
+        if (!$user->isTeacher()) {
+            return null; // Admin sees everything
+        }
+
+        $sectionIds = \App\Models\Section::where('teacher_id', $user->id)->pluck('id');
+        return DB::table('section_students')
+            ->whereIn('section_id', $sectionIds)
+            ->pluck('user_id')
+            ->unique()
+            ->toArray();
+    }
+
+    private function getQuizHeatmapData($studentIds = null)
+    {
+        $attempts = UserQuizAttempt::whereNotNull('answers_data')
+            ->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
+            ->get();
         $questionStats = [];
 
         foreach ($attempts as $attempt) {
@@ -452,9 +559,11 @@ class AnalyticsController extends Controller
         return $heatmapData;
     }
 
-    private function getSimulationHeatmapData()
+    private function getSimulationHeatmapData($studentIds = null)
     {
-        $attempts = SimulationAttempt::whereNotNull('completed_at')->get();
+        $attempts = SimulationAttempt::whereNotNull('completed_at')
+            ->when($studentIds, fn($q) => $q->whereIn('user_id', $studentIds))
+            ->get();
         $scenarioStats = [];
 
         foreach ($attempts as $attempt) {

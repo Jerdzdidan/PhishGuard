@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lesson;
+use App\Models\Scenario;
 use App\Models\SimulationAttempt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,11 +15,33 @@ class SimulationController extends Controller
 {
     /**
      * Get simulation configurations for each lesson
+     * First checks DB for scenarios, falls back to hardcoded config
      */
     private function getSimulationConfig($lessonId)
     {
+        // Check DB-driven scenarios first
+        $dbScenarios = Scenario::where('lesson_id', $lessonId)
+            ->where('is_active', true)
+            ->where('type', 'simulation')
+            ->orderBy('order')
+            ->get();
+
+        if ($dbScenarios->isNotEmpty()) {
+            return $dbScenarios->map(function ($scenario) {
+                return [
+                    'id' => $scenario->slug,
+                    'title' => $scenario->title,
+                    'description' => $scenario->description,
+                    'total_scenarios' => $scenario->total_scenarios,
+                    'view' => 'user.simulations.dynamic-simulation', // DB-driven view
+                    'db_id' => $scenario->id,
+                ];
+            })->toArray();
+        }
+
+        // Fallback to hardcoded config
         $configs = [
-            1 => [ // Lesson 1 - ONE simulation with 5 diverse scenarios
+            1 => [
                 [
                     'id' => 'lesson-1-sim',
                     'title' => 'Phishing & Online Scams Detection',
@@ -27,7 +50,7 @@ class SimulationController extends Controller
                     'view' => 'user.simulations.lesson-1-simulation'
                 ]
             ],
-            2 => [ // Lesson 2 - ONE simulation
+            2 => [
                 [
                     'id' => 'lesson-2-sim',
                     'title' => 'Advanced Threat Recognition',
@@ -36,7 +59,7 @@ class SimulationController extends Controller
                     'view' => 'user.simulations.lesson-2-simulation'
                 ]
             ],
-            3 => [ // Lesson 3 - ONE simulation
+            3 => [
                 [
                     'id' => 'lesson-3-sim',
                     'title' => 'Password & Account Security',
@@ -169,7 +192,23 @@ class SimulationController extends Controller
                 }
             }
 
-            return view($simulation['view'], compact('lesson', 'simulation'));
+            // For DB-driven simulations, load the scenario items
+            $scenarios = null;
+            $lessonEncId = $id;
+            $simEncId = Crypt::encryptString($simulation['db_id'] ?? $simId);
+
+            if (isset($simulation['db_id'])) {
+                $scenarios = \App\Models\ScenarioItem::where('scenario_id', $simulation['db_id'])
+                    ->orderBy('order')
+                    ->get();
+                
+                if ($scenarios->isEmpty()) {
+                    return redirect()->route('lessons.simulations.index', $id)
+                        ->with('error', 'No scenarios have been created for this simulation yet.');
+                }
+            }
+
+            return view($simulation['view'], compact('lesson', 'simulation', 'scenarios', 'lessonEncId', 'simEncId'));
 
         } catch (\Exception $e) {
             return redirect()->route('user.home')

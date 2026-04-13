@@ -259,6 +259,15 @@ body:not(.edit-mode-active) .inline-edit-field {
                                     </label>
                                 </a>
                             </div>
+                            <hr>
+                            <div class="mb-4">
+                                <a href="{{ route('admin.lessons.simulation.show', Crypt::encryptString($lesson->id)) }}">
+                                    <label class="form-check-label ms-4">
+                                        <span class="mb-0 h6">3. Simulation</span>
+                                        <small class="text-body d-block">scenarios</small>
+                                    </label>
+                                </a>
+                            </div>
                             
                             <!-- Active Status (Only show in edit mode) -->
                             <div id="activeStatusSection" class="d-none">
@@ -326,6 +335,23 @@ body:not(.edit-mode-active) .inline-edit-field {
                 </div>
             </div>
 
+            <!-- Lecture Files -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bx bxs-file me-2"></i>Lecture Files</h5>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadLectureModal">
+                        <i class="bx bx-upload me-1"></i> Upload
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="lectureFilesList">
+                        <div class="text-center text-muted py-3">
+                            <span class="spinner-border spinner-border-sm me-1"></span> Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card mt-4">
                 <div class="card-body text-center">
                     <button id="deleteButton" type="button" class="btn btn-danger w-100 mt-2">
@@ -336,6 +362,38 @@ body:not(.edit-mode-active) .inline-edit-field {
         </div>
     </div>
 </form>
+
+<!-- Upload Lecture Modal -->
+<div class="modal fade" id="uploadLectureModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Lecture File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="lectureUploadForm" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="lectureTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="lectureTitle" name="title" placeholder="e.g. Module 1 - Introduction" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="lectureFile" class="form-label">File</label>
+                        <input type="file" class="form-control" id="lectureFile" name="file" required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.mp4,.avi,.mov">
+                        <small class="text-muted">Max 50MB. Supported: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, images, videos</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="uploadLectureBtn">
+                        <i class="bx bx-upload me-1"></i> Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -482,6 +540,108 @@ $(document).ready(function() {
             }
         });
     });
+
+    // ===== LECTURE FILES MANAGEMENT =====
+    const lessonEncId = "{{ Crypt::encryptString($lesson->id) }}";
+
+    function loadLectureFiles() {
+        $.get(`/admin/lectures/${lessonEncId}`, function(data) {
+            const $list = $('#lectureFilesList');
+            if (data.length === 0) {
+                $list.html('<p class="text-muted text-center mb-0">No lecture files uploaded yet.</p>');
+                return;
+            }
+            let html = '<div class="list-group list-group-flush">';
+            data.forEach(file => {
+                html += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div class="d-flex align-items-center">
+                            <i class="${file.file_icon} me-2 fs-5"></i>
+                            <div>
+                                <a href="${file.download_url}" class="fw-medium text-body">${file.title}</a>
+                                <small class="d-block text-muted">${file.file_size} · ${file.file_type.toUpperCase()}</small>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="${file.download_url}" class="btn btn-sm btn-icon btn-outline-primary me-1" title="Download">
+                                <i class="bx bx-download"></i>
+                            </a>
+                            <button class="btn btn-sm btn-icon btn-outline-danger" onclick="deleteLecture('${file.id}', '${file.title}')" title="Delete">
+                                <i class="bx bx-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            $list.html(html);
+        }).fail(function() {
+            $('#lectureFilesList').html('<p class="text-muted text-center mb-0">Failed to load files.</p>');
+        });
+    }
+
+    // Load on page load
+    loadLectureFiles();
+
+    // Upload lecture file
+    $('#lectureUploadForm').on('submit', function(e) {
+        e.preventDefault();
+        const fd = new FormData(this);
+        const $btn = $('#uploadLectureBtn');
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Uploading...');
+
+        $.ajax({
+            url: `/admin/lectures/${lessonEncId}`,
+            method: 'POST',
+            data: fd,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire('Success', response.message, 'success');
+                    $('#uploadLectureModal').modal('hide');
+                    $('#lectureUploadForm')[0].reset();
+                    loadLectureFiles();
+                }
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || 'Upload failed.';
+                Swal.fire('Error', msg, 'error');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html('<i class="bx bx-upload me-1"></i> Upload');
+            }
+        });
+    });
+
+    // Delete lecture file
+    window.deleteLecture = function(id, title) {
+        Swal.fire({
+            title: 'Delete File?',
+            text: `Are you sure you want to delete "${title}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/admin/lectures/${id}`,
+                    method: 'DELETE',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire('Deleted!', response.message, 'success');
+                            loadLectureFiles();
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'Failed to delete file.', 'error');
+                    }
+                });
+            }
+        });
+    };
 });
 </script>
 @endsection

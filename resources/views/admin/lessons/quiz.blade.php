@@ -246,6 +246,15 @@ LESSONS
                                     <small class="text-body d-block">assessment</small>
                                 </label>
                             </div>
+                            <hr>
+                            <div class="mb-4">
+                                <a href="{{ route('admin.lessons.simulation.show', Crypt::encryptString($lesson->id)) }}">
+                                    <label class="form-check-label ms-4">
+                                        <span class="mb-0 h6">3. Simulation</span>
+                                        <small class="text-body d-block">scenarios</small>
+                                    </label>
+                                </a>
+                            </div>
                             
                         </div>
                     </div>

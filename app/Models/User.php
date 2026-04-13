@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'user_type',
+        'google_id',
     ];
 
     /**
@@ -117,16 +118,104 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has completed all lessons
+     * Get sections created by this teacher
      */
-    public function hasCompletedAllLessons(): bool
+    public function sections()
     {
-        $totalActiveLessons = Lesson::where('is_active', true)->count();
-        $completedLessons = $this->studentLessons()
-            ->whereNotNull('completed_at')
-            ->count();
+        return $this->hasMany(Section::class, 'teacher_id');
+    }
+
+    /**
+     * Get sections this student is enrolled in
+     */
+    public function enrolledSections()
+    {
+        return $this->belongsToMany(Section::class, 'section_students')->withTimestamps();
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->user_type === 'ADMIN';
+    }
+
+    /**
+     * Check if user is teacher
+     */
+    public function isTeacher(): bool
+    {
+        return $this->user_type === 'TEACHER';
+    }
+
+    /**
+     * Check if user is a regular user
+     */
+    public function isUser(): bool
+    {
+        return $this->user_type === 'USER';
+    }
+
+    /**
+     * Check if user has admin-level access (admin or teacher)
+     */
+    public function hasAdminAccess(): bool
+    {
+        return in_array($this->user_type, ['ADMIN', 'TEACHER']);
+    }
+
+    public function assessmentAttempts()
+    {
+        return $this->hasMany(AssessmentAttempt::class);
+    }
+
+    /**
+     * Check if user has completed all lessons in a section
+     */
+    public function hasCompletedAllLessons($sectionId = null): bool
+    {
+        if ($sectionId) {
+            $section = Section::find($sectionId);
+            if (!$section) return false;
+            $lessonIds = $section->lessons()->pluck('lessons.id');
+            $totalLessons = $lessonIds->count();
+            $completedLessons = $this->studentLessons()
+                ->whereIn('lesson_id', $lessonIds)
+                ->whereNotNull('completed_at')
+                ->count();
+        } else {
+            $totalLessons = Lesson::where('is_active', true)->count();
+            $completedLessons = $this->studentLessons()
+                ->whereNotNull('completed_at')
+                ->count();
+        }
         
-        return $totalActiveLessons > 0 && $completedLessons >= $totalActiveLessons;
+        return $totalLessons > 0 && $completedLessons >= $totalLessons;
+    }
+
+    /**
+     * Check if user has completed pre-assessment for a section
+     */
+    public function hasCompletedPreAssessment($sectionId): bool
+    {
+        return $this->assessmentAttempts()
+            ->where('section_id', $sectionId)
+            ->where('type', 'pre')
+            ->whereNotNull('completed_at')
+            ->exists();
+    }
+
+    /**
+     * Check if user has completed post-assessment for a section
+     */
+    public function hasCompletedPostAssessment($sectionId): bool
+    {
+        return $this->assessmentAttempts()
+            ->where('section_id', $sectionId)
+            ->where('type', 'post')
+            ->whereNotNull('completed_at')
+            ->exists();
     }
 
     /**
@@ -136,6 +225,16 @@ class User extends Authenticatable
     {
         // Must complete all lessons
         if (!$this->hasCompletedAllLessons()) {
+            return false;
+        }
+
+        // Must have completed at least one post-assessment
+        $hasPostAssessment = $this->assessmentAttempts()
+            ->where('type', 'post')
+            ->whereNotNull('completed_at')
+            ->exists();
+
+        if (!$hasPostAssessment) {
             return false;
         }
 
@@ -166,3 +265,4 @@ class User extends Authenticatable
         ]);
     }
 }
+

@@ -156,27 +156,16 @@
             </a>
           </p>
 
-          {{-- <div class="divider my-6">
+          <div class="divider my-6">
             <div class="divider-text">or</div>
-          </div> --}}
+          </div>
 
-          {{-- <div class="d-flex justify-content-center">
-            <a href="javascript:;" class="btn btn-sm btn-icon rounded-circle btn-text-facebook me-1_5">
-              <i class="icon-base bx bxl-facebook-circle icon-20px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-sm btn-icon rounded-circle btn-text-twitter me-1_5">
-              <i class="icon-base bx bxl-twitter icon-20px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-sm btn-icon rounded-circle btn-text-github me-1_5">
-              <i class="icon-base bx bxl-github icon-20px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-sm btn-icon rounded-circle btn-text-google-plus">
+          <div class="d-flex justify-content-center">
+            <a href="{{ route('auth.google') }}" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2">
               <i class="icon-base bx bxl-google icon-20px"></i>
+              <span>Sign up with Google</span>
             </a>
-          </div> --}}
+          </div>
         </div>
       </div>
       <!-- /Login -->

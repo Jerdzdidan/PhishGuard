@@ -63,7 +63,6 @@ class UserController extends Controller
         $user->user_type = $validated['user_type'];
         $user->email = $validated['email'];
         $user->password = Hash::make($validated['password']);
-        $user->user_type = 'ADMIN';
 
         $user->save();
     }

@@ -136,4 +136,62 @@ class LessonController extends Controller
             ->route('admin.lessons.index')
             ->with('success', 'Lesson deleted successfully.');
     }
+
+    /**
+     * Show simulation management page for a lesson
+     */
+    public function simulation($id)
+    {
+        $lessonId = Crypt::decryptString($id);
+        $lesson = Lesson::findOrFail($lessonId);
+
+        // Get or create the simulation scenario for this lesson
+        $scenario = \App\Models\Scenario::where('lesson_id', $lessonId)
+            ->where('type', 'simulation')
+            ->first();
+
+        $items = collect();
+        if ($scenario) {
+            $items = \App\Models\ScenarioItem::where('scenario_id', $scenario->id)
+                ->orderBy('order')
+                ->get();
+        }
+
+        return view('admin.lessons.simulation', compact('lesson', 'scenario', 'items'));
+    }
+
+    /**
+     * Toggle simulation status and auto-create scenario if needed
+     */
+    public function toggleSimulation(Request $request, $id)
+    {
+        $lessonId = Crypt::decryptString($id);
+        $lesson = Lesson::findOrFail($lessonId);
+
+        $enabled = $request->input('has_simulation', 0);
+        $lesson->update(['has_simulation' => $enabled]);
+
+        // Auto-create scenario record if enabling and none exists
+        if ($enabled) {
+            $existing = \App\Models\Scenario::where('lesson_id', $lessonId)
+                ->where('type', 'simulation')
+                ->first();
+
+            if (!$existing) {
+                \App\Models\Scenario::create([
+                    'lesson_id' => $lessonId,
+                    'title' => $lesson->title . ' Simulation',
+                    'slug' => \Illuminate\Support\Str::slug($lesson->title) . '-sim-' . \Illuminate\Support\Str::random(6),
+                    'type' => 'simulation',
+                    'is_active' => true,
+                    'order' => 1,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $enabled ? 'Simulations enabled. You can now add scenarios.' : 'Simulations disabled.',
+        ]);
+    }
 }
