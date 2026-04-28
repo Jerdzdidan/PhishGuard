@@ -37,7 +37,7 @@ Assessment Analytics
 
         {{-- Summary Stats --}}
         <div class="row g-4 mb-4">
-            <div class="col-md-3">
+            <div class="col-xl col-md-6">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted">Pre-Assessments</h6>
@@ -45,7 +45,7 @@ Assessment Analytics
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-xl col-md-6">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted">Post-Assessments</h6>
@@ -53,7 +53,7 @@ Assessment Analytics
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-xl col-md-6">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted">Avg Pre Score</h6>
@@ -61,7 +61,15 @@ Assessment Analytics
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-xl col-md-6">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">Avg Post Score</h6>
+                        <h2 class="mb-0 text-success">{{ $stats['avg_post_score'] }}%</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl col-md-6">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted">Avg Improvement</h6>
@@ -73,57 +81,92 @@ Assessment Analytics
             </div>
         </div>
 
-        {{-- Student Comparisons Table --}}
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Pre vs Post Comparison by Student</h5>
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Pre vs Post Comparison by Student</h5>
+                    </div>
+                    <div class="card-body">
+                        @if(count($studentComparisons) > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Section</th>
+                                        <th>Pre-Assessment</th>
+                                        <th>Post-Assessment</th>
+                                        <th>Improvement</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($studentComparisons as $comparison)
+                                    <tr>
+                                        <td>{{ $comparison['student'] }}</td>
+                                        <td>{{ $comparison['section'] }}</td>
+                                        <td>
+                                            <span class="badge bg-label-warning">{{ $comparison['pre_score'] }}%</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-label-success">{{ $comparison['post_score'] }}%</span>
+                                        </td>
+                                        <td>
+                                            @php
+                                                $impr = $comparison['improvement'];
+                                                $color = $impr >= 0 ? 'success' : 'danger';
+                                                $icon = $impr >= 0 ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt';
+                                            @endphp
+                                            <span class="text-{{ $color }} fw-bold">
+                                                <i class="bx {{ $icon }}"></i>
+                                                {{ abs($impr) }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        @else
+                        <div class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-chart-bar fa-3x mb-3"></i>
+                            <p>No students have completed both pre and post assessments yet.</p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                @if(count($studentComparisons) > 0)
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Section</th>
-                                <th>Pre-Assessment</th>
-                                <th>Post-Assessment</th>
-                                <th>Improvement</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($studentComparisons as $comparison)
-                            <tr>
-                                <td>{{ $comparison['student'] }}</td>
-                                <td>{{ $comparison['section'] }}</td>
-                                <td>
-                                    <span class="badge bg-label-warning">{{ $comparison['pre_score'] }}%</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-label-success">{{ $comparison['post_score'] }}%</span>
-                                </td>
-                                <td>
-                                    @php
-                                        $impr = $comparison['improvement'];
-                                        $color = $impr >= 0 ? 'success' : 'danger';
-                                        $icon = $impr >= 0 ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt';
-                                    @endphp
-                                    <span class="text-{{ $color }} fw-bold">
-                                        <i class="bx {{ $icon }}"></i>
-                                        {{ abs($impr) }}%
-                                    </span>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+
+            <div class="col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Completed Assessment Attempts</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 620px; overflow-y: auto;">
+                        @forelse($attempts as $attempt)
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">{{ $attempt->user->first_name }} {{ $attempt->user->last_name }}</h6>
+                                    <small class="text-muted">{{ $attempt->section->name }} • {{ $attempt->completed_at->format('M d, Y • h:i A') }}</small>
+                                </div>
+                                <span class="badge {{ $attempt->type === 'pre' ? 'bg-label-warning' : 'bg-label-success' }}">
+                                    {{ ucfirst($attempt->type) }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">{{ $attempt->score }}/{{ $attempt->total_questions }} correct</small>
+                                <strong>{{ $attempt->percentage }}%</strong>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-clipboard-check fa-3x mb-3"></i>
+                            <p>No completed assessment attempts found.</p>
+                        </div>
+                        @endforelse
+                    </div>
                 </div>
-                @else
-                <div class="text-center py-4 text-muted">
-                    <i class="fa-solid fa-chart-bar fa-3x mb-3"></i>
-                    <p>No students have completed both pre and post assessments yet.</p>
-                </div>
-                @endif
             </div>
         </div>
     </div>

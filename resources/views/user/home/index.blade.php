@@ -69,6 +69,51 @@ HOME
     </div>
   </div>
 
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+        <div>
+          <h5 class="mb-1">Your Progress</h5>
+          <p class="text-muted mb-0">
+            {{ $completedLessonsCount }} of {{ $total }} lesson{{ $total === 1 ? '' : 's' }} completed in this section
+          </p>
+        </div>
+        <div class="text-lg-end">
+          <span class="badge bg-label-primary mb-2">{{ $sectionProgressPercentage }}% Complete</span>
+          <div class="progress" style="width: 240px; height: 10px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ $sectionProgressPercentage }}%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100">
+            <small class="text-muted d-block mb-1">Pre-Assessment</small>
+            <strong class="{{ $preAssessmentCompleted ? 'text-success' : 'text-warning' }}">
+              {{ $preAssessmentCompleted ? 'Completed' : 'Required' }}
+            </strong>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100">
+            <small class="text-muted d-block mb-1">Lessons</small>
+            <strong class="{{ $allLessonsCompleted ? 'text-success' : 'text-primary' }}">
+              {{ $completedLessonsCount }}/{{ $total }} complete
+            </strong>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100">
+            <small class="text-muted d-block mb-1">Certificate Path</small>
+            <strong class="{{ $postAssessmentCompleted ? 'text-success' : 'text-warning' }}">
+              {{ $postAssessmentCompleted ? 'Post-Assessment Completed' : 'Waiting for Post-Assessment' }}
+            </strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   {{-- Pre-Assessment Required --}}
   @if(!$preAssessmentCompleted)
   <div class="card mb-4 border-warning">
@@ -142,7 +187,7 @@ HOME
         <i class="bx bxs-certification" style="font-size: 3rem; color: #696cff;"></i>
         <h4 class="mt-2 mb-1">Assessment Complete!</h4>
         <p class="text-muted mb-3">You have completed both assessments. You may now claim your certificate.</p>
-        <a href="{{ route('certificate.check') }}" class="btn btn-primary">
+        <a href="{{ route('certificate.view') }}" class="btn btn-primary">
           <i class="bx bx-award me-1"></i> View Certificate
         </a>
       </div>
@@ -152,6 +197,6 @@ HOME
 </div>
 @endsection
 
-@section('script')
+@section('scripts')
 <script src="{{ asset('themes/sneat/assets/js/app-academy-course.js') }}"></script>
 @endsection

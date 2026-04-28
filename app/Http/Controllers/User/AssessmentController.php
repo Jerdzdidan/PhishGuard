@@ -29,7 +29,9 @@ class AssessmentController extends Controller
         }
 
         // Get all questions from all lessons in this section
-        $lessonIds = $section->lessons()->pluck('lessons.id');
+        $lessonIds = $section->lessons()
+            ->where('lessons.is_active', true)
+            ->pluck('lessons.id');
         $questions = Question::whereHas('quiz', function ($q) use ($lessonIds) {
             $q->whereIn('lesson_id', $lessonIds)->where('is_active', true);
         })->with('answers')->inRandomOrder()->get();
@@ -67,7 +69,9 @@ class AssessmentController extends Controller
         }
 
         // Get all questions from all lessons in this section
-        $lessonIds = $section->lessons()->pluck('lessons.id');
+        $lessonIds = $section->lessons()
+            ->where('lessons.is_active', true)
+            ->pluck('lessons.id');
         $questions = Question::whereHas('quiz', function ($q) use ($lessonIds) {
             $q->whereIn('lesson_id', $lessonIds)->where('is_active', true);
         })->with('answers')->inRandomOrder()->get();

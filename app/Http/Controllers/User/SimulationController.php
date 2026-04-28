@@ -107,15 +107,18 @@ class SimulationController extends Controller
             $progress = $lesson->getStudentProgress();
             $attempts = [];
             foreach ($simulations as $sim) {
-                $attempts[$sim['id']] = SimulationAttempt::where('user_id', Auth::id())
-                    ->where('lesson_id', $lessonId)
-                    ->where('simulation_id', $sim['id'])
-                    ->where('completed_at', '!=', null)
-                    ->latest()
-                    ->first();
+                $attempts[$sim['id']] = $this->getLatestCompletedAttempt($lessonId, $sim['id']);
             }
 
-            return view('user.home.lesson.simulations', compact('lesson', 'simulations', 'attempts', 'progress'));
+            $passedSimulationIds = $this->getPassedSimulationIds($lessonId);
+
+            return view('user.home.lesson.simulations', compact(
+                'lesson',
+                'simulations',
+                'attempts',
+                'progress',
+                'passedSimulationIds'
+            ));
 
         } catch (\Exception $e) {
             return redirect()->route('user.home')
@@ -156,16 +159,9 @@ class SimulationController extends Controller
             $simIndex = array_search($simId, array_column($simulations, 'id'));
             if ($simIndex > 0) {
                 $previousSim = $simulations[$simIndex - 1];
-                $previousAttempt = SimulationAttempt::where('user_id', Auth::id())
-                    ->where('lesson_id', $lessonId)
-                    ->where('simulation_id', $previousSim['id'])
-                    ->where('completed_at', '!=', null)
-                    ->latest()
-                    ->first();
-
-                if (!$previousAttempt) {
+                if (!in_array($previousSim['id'], $this->getPassedSimulationIds($lessonId)->all(), true)) {
                     return redirect()->route('lessons.simulations.index', $id)
-                        ->with('error', 'Complete the previous simulation first.');
+                        ->with('error', 'Pass the previous simulation first.');
                 }
             }
 
@@ -195,10 +191,11 @@ class SimulationController extends Controller
             // For DB-driven simulations, load the scenario items
             $scenarios = null;
             $lessonEncId = $id;
-            $simEncId = Crypt::encryptString($simulation['db_id'] ?? $simId);
+            $simulationRouteId = $simulation['id'];
 
             if (isset($simulation['db_id'])) {
                 $scenarios = \App\Models\ScenarioItem::where('scenario_id', $simulation['db_id'])
+                    ->active()
                     ->orderBy('order')
                     ->get();
                 
@@ -208,7 +205,13 @@ class SimulationController extends Controller
                 }
             }
 
-            return view($simulation['view'], compact('lesson', 'simulation', 'scenarios', 'lessonEncId', 'simEncId'));
+            return view($simulation['view'], compact(
+                'lesson',
+                'simulation',
+                'scenarios',
+                'lessonEncId',
+                'simulationRouteId'
+            ));
 
         } catch (\Exception $e) {
             return redirect()->route('user.home')
@@ -296,18 +299,18 @@ class SimulationController extends Controller
 
             $attempt->update([
                 'completed_at' => now(),
-                'score' => $correctCount,  // ✅ Store the count of correct answers, not the input score
+                'score' => $correctCount,
                 'time_taken' => $validated['time_taken'],
                 'click_data' => $validated['click_data'] ?? [],
-                'scenario_results' => $scenarioResults  // ✅ Store the converted array
+                'scenario_results' => $scenarioResults
             ]);
 
             // Update student lesson progress
             $lesson = Lesson::findOrFail($lessonId);
             $progress = $lesson->getStudentProgress();
-            
-            // Update simulation results (only count if passed)
-            $progress->updateSimulationResults($passed);
+
+            $passedSimulationIds = $this->getPassedSimulationIds($lessonId);
+            $progress->updateSimulationProgress($passedSimulationIds->count(), count($this->getSimulationConfig($lessonId)));
 
             // If completed, unlock dependent lessons
             if ($progress->isCompleted()) {
@@ -322,6 +325,7 @@ class SimulationController extends Controller
                 'passed' => $passed,
                 'percentage' => $percentage,
                 'all_completed' => $progress->simulations_completed,
+                'completed_simulations' => $progress->simulation_progress,
                 'redirect_url' => route('lessons.simulations.results', [
                     'id' => $id,
                     'simId' => $simId,
@@ -396,5 +400,27 @@ class SimulationController extends Controller
             return redirect()->route('user.home')
                 ->with('error', 'Unable to retake simulation.');
         }
+    }
+
+    private function getLatestCompletedAttempt(int $lessonId, string $simulationId): ?SimulationAttempt
+    {
+        return SimulationAttempt::where('user_id', Auth::id())
+            ->where('lesson_id', $lessonId)
+            ->where('simulation_id', $simulationId)
+            ->whereNotNull('completed_at')
+            ->latest()
+            ->first();
+    }
+
+    private function getPassedSimulationIds(int $lessonId)
+    {
+        return SimulationAttempt::where('user_id', Auth::id())
+            ->where('lesson_id', $lessonId)
+            ->whereNotNull('completed_at')
+            ->get()
+            ->filter(fn($attempt) => $attempt->isPassed())
+            ->pluck('simulation_id')
+            ->unique()
+            ->values();
     }
 }

@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable
 {
@@ -76,29 +77,48 @@ class User extends Authenticatable
     /**
      * Get completed lessons count
      */
-    public function completedLessonsCount()
+    public function completedLessonsCount($lessonIds = null)
     {
-        return $this->studentLessons()->whereNotNull('completed_at')->count();
+        $query = $this->studentLessons()->whereNotNull('completed_at');
+
+        $lessonIds = $this->normalizeLessonIds($lessonIds);
+        if ($lessonIds !== null) {
+            $query->whereIn('lesson_id', $lessonIds);
+        }
+
+        return $query->count();
     }
 
     /**
      * Get average quiz score
      */
-    public function averageQuizScore()
+    public function averageQuizScore($lessonIds = null)
     {
-        return $this->quizAttempts()
-            ->whereNotNull('completed_at')
-            ->avg('score');
+        $query = $this->quizAttempts()->whereNotNull('completed_at');
+
+        $lessonIds = $this->normalizeLessonIds($lessonIds);
+        if ($lessonIds !== null) {
+            $query->whereHas('quiz', function ($quizQuery) use ($lessonIds) {
+                $quizQuery->whereIn('lesson_id', $lessonIds);
+            });
+        }
+
+        return $query->avg('score');
     }
 
     /**
      * Get average simulation score
      */
-    public function averageSimulationScore()
+    public function averageSimulationScore($lessonIds = null)
     {
-        $attempts = $this->simulationAttempts()
-            ->whereNotNull('completed_at')
-            ->get();
+        $query = $this->simulationAttempts()->whereNotNull('completed_at');
+
+        $lessonIds = $this->normalizeLessonIds($lessonIds);
+        if ($lessonIds !== null) {
+            $query->whereIn('lesson_id', $lessonIds);
+        }
+
+        $attempts = $query->get();
         
         if ($attempts->isEmpty()) {
             return null;
@@ -171,27 +191,48 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the unique lesson IDs assigned to this student across enrolled sections.
+     */
+    public function getAssignedLessonIds(?array $sectionIds = null): Collection
+    {
+        $sections = $this->enrolledSections()->with('lessons');
+
+        if ($sectionIds !== null) {
+            $sections->whereIn('sections.id', $sectionIds);
+        }
+
+        return $sections->get()
+            ->flatMap(fn($section) => $section->lessons->where('is_active', true)->pluck('id'))
+            ->unique()
+            ->values();
+    }
+
+    /**
      * Check if user has completed all lessons in a section
      */
     public function hasCompletedAllLessons($sectionId = null): bool
     {
         if ($sectionId) {
-            $section = Section::find($sectionId);
-            if (!$section) return false;
-            $lessonIds = $section->lessons()->pluck('lessons.id');
-            $totalLessons = $lessonIds->count();
-            $completedLessons = $this->studentLessons()
-                ->whereIn('lesson_id', $lessonIds)
-                ->whereNotNull('completed_at')
-                ->count();
+            $section = $this->enrolledSections()
+                ->with('lessons')
+                ->find($sectionId);
+
+            if (!$section) {
+                return false;
+            }
+
+            $lessonIds = $section->lessons->where('is_active', true)->pluck('id')->unique();
         } else {
-            $totalLessons = Lesson::where('is_active', true)->count();
-            $completedLessons = $this->studentLessons()
-                ->whereNotNull('completed_at')
-                ->count();
+            $lessonIds = $this->getAssignedLessonIds();
         }
-        
-        return $totalLessons > 0 && $completedLessons >= $totalLessons;
+
+        $totalLessons = $lessonIds->count();
+
+        if ($totalLessons === 0) {
+            return false;
+        }
+
+        return $this->completedLessonsCount($lessonIds) >= $totalLessons;
     }
 
     /**
@@ -223,46 +264,89 @@ class User extends Authenticatable
      */
     public function isEligibleForCertificate(): bool
     {
-        // Must complete all lessons
-        if (!$this->hasCompletedAllLessons()) {
-            return false;
-        }
-
-        // Must have completed at least one post-assessment
-        $hasPostAssessment = $this->assessmentAttempts()
-            ->where('type', 'post')
-            ->whereNotNull('completed_at')
-            ->exists();
-
-        if (!$hasPostAssessment) {
-            return false;
-        }
-
-        // Check if already has certificate
         if ($this->certificate) {
             return false;
         }
 
-        return true;
+        return $this->getCertificateEligibleSection() !== null;
     }
 
     /**
      * Issue certificate to user
      */
-    public function issueCertificate()
+    public function issueCertificate($sectionId = null)
     {
-        if (!$this->isEligibleForCertificate()) {
+        if ($this->certificate) {
+            return $this->certificate;
+        }
+
+        $section = $sectionId
+            ? $this->enrolledSections()->with('lessons')->find($sectionId)
+            : $this->getCertificateEligibleSection();
+
+        if (!$section || !$this->isEligibleForCertificateForSection($section->id)) {
             return null;
         }
+
+        $lessonIds = $section->lessons->where('is_active', true)->pluck('id')->unique();
 
         return Certificate::create([
             'user_id' => $this->id,
             'certificate_number' => Certificate::generateCertificateNumber(),
             'issued_at' => now(),
-            'total_lessons_completed' => $this->completedLessonsCount(),
-            'average_quiz_score' => $this->averageQuizScore(),
-            'average_simulation_score' => $this->averageSimulationScore()
+            'total_lessons_completed' => $this->completedLessonsCount($lessonIds),
+            'average_quiz_score' => $this->averageQuizScore($lessonIds),
+            'average_simulation_score' => $this->averageSimulationScore($lessonIds)
         ]);
     }
-}
 
+    /**
+     * Get the first section where the student finished every assigned lesson
+     * but still needs to take the post-assessment.
+     */
+    public function getPendingPostAssessmentSection(): ?Section
+    {
+        return $this->enrolledSections()
+            ->with('lessons', 'teacher')
+            ->get()
+            ->first(function ($section) {
+                return $section->lessons->where('is_active', true)->isNotEmpty()
+                    && $this->hasCompletedPreAssessment($section->id)
+                    && $this->hasCompletedAllLessons($section->id)
+                    && !$this->hasCompletedPostAssessment($section->id);
+            });
+    }
+
+    /**
+     * Get the first section that qualifies the student for a certificate.
+     */
+    public function getCertificateEligibleSection(): ?Section
+    {
+        return $this->enrolledSections()
+            ->with('lessons', 'teacher')
+            ->get()
+            ->first(function ($section) {
+                return $section->lessons->where('is_active', true)->isNotEmpty()
+                    && $this->isEligibleForCertificateForSection($section->id);
+            });
+    }
+
+    private function isEligibleForCertificateForSection(int $sectionId): bool
+    {
+        return $this->hasCompletedAllLessons($sectionId)
+            && $this->hasCompletedPostAssessment($sectionId);
+    }
+
+    private function normalizeLessonIds($lessonIds): ?array
+    {
+        if ($lessonIds === null) {
+            return null;
+        }
+
+        if ($lessonIds instanceof Collection) {
+            return $lessonIds->values()->all();
+        }
+
+        return collect($lessonIds)->unique()->values()->all();
+    }
+}

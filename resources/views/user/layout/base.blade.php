@@ -351,52 +351,117 @@
     @if(auth()->check() && auth()->user()->user_type === 'USER')
     <script>
     $(document).ready(function() {
-        // Check for new certificate eligibility only once per session
-        var certificateChecked = sessionStorage.getItem('certificateChecked_{{ auth()->id() }}');
-        
-        if (!certificateChecked) {
-            $.ajax({
-                url: '{{ route("certificate.check") }}',
-                type: 'GET',
-                success: function(response) {
-                    if (response.eligible && !response.has_certificate) {
-                        // User just became eligible - show congratulations
+        const userId = '{{ auth()->id() }}';
+
+        function ensureCertificateNotification() {
+            if (document.getElementById('certificateNotification')) {
+                return;
+            }
+
+            const notification = document.createElement('div');
+            notification.className = 'certificate-notification';
+            notification.id = 'certificateNotification';
+            notification.innerHTML = `
+                <a href="{{ route('certificate.view') }}" class="certificate-badge">
+                    <div class="certificate-badge-icon">🏆</div>
+                    <div class="certificate-badge-content">
+                        <div class="certificate-badge-title">CERTIFICATE EARNED!</div>
+                        <div class="certificate-badge-subtitle">Click to view your achievement</div>
+                    </div>
+                    <button type="button" class="certificate-badge-close">×</button>
+                </a>
+            `;
+
+            document.body.appendChild(notification);
+
+            const closeBtn = notification.querySelector('.certificate-badge-close');
+            closeBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                hideCertificateNotification();
+            });
+
+            const notificationHidden = localStorage.getItem(`certificateNotificationHidden_${userId}`);
+            if (notificationHidden === 'true') {
+                notification.classList.add('hidden');
+            }
+        }
+
+        $.ajax({
+            url: '{{ route("certificate.check") }}',
+            type: 'GET',
+            success: function(response) {
+                if (response.just_earned_certificate && response.certificate) {
+                    const celebrationKey = `certificateCelebrated_${userId}_${response.certificate.certificate_number}`;
+
+                    ensureCertificateNotification();
+
+                    if (!localStorage.getItem(celebrationKey)) {
+                        localStorage.setItem(celebrationKey, 'true');
+
+                        const emailMessage = response.email_sent
+                            ? `<p style="font-size: 14px; color: #1E7F5C; margin-top: 15px;">${response.email_message}</p>`
+                            : '<p style="font-size: 14px; color: #666; margin-top: 15px;">Your certificate is ready now. You can view it here and resend the email anytime.</p>';
+
                         Swal.fire({
                             icon: 'success',
-                            title: '🎉 Congratulations!',
+                            title: 'Congratulations!',
                             html: '<div style="padding: 20px;">' +
-                                  '<p style="font-size: 18px; margin: 20px 0; font-weight: 500;">You have successfully completed all lessons!</p>' +
+                                  '<p style="font-size: 18px; margin: 20px 0; font-weight: 500;">You have successfully completed all lessons and passed the post-assessment.</p>' +
                                   '<div style="background: linear-gradient(135deg, #1E7F5C, #28c76f); color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">' +
                                   '<i class="ri-award-fill" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>' +
-                                  '<p style="font-size: 22px; font-weight: 700;">You\'ve Earned Your Certificate!</p>' +
+                                  '<p style="font-size: 22px; font-weight: 700;">Your certificate is ready!</p>' +
                                   '</div>' +
-                                  '<p style="font-size: 14px; color: #666; margin-top: 15px;">Your certificate will be available in the bottom-right corner</p>' +
+                                  emailMessage +
                                   '</div>',
                             confirmButtonText: '<i class="ri-award-line me-2"></i> View My Certificate',
                             confirmButtonColor: '#1E7F5C',
                             showCancelButton: true,
-                            cancelButtonText: 'View Later',
-                            allowOutsideClick: false,
-                            customClass: {
-                                popup: 'certificate-popup',
-                                confirmButton: 'btn-lg',
-                                cancelButton: 'btn-lg'
-                            }
+                            cancelButtonText: 'Later',
+                            allowOutsideClick: false
                         }).then((result) => {
                             if (result.isConfirmed) {
                                 window.location.href = '{{ route("certificate.view") }}';
                             }
                         });
                     }
-                    
-                    // Mark as checked for this session
-                    sessionStorage.setItem('certificateChecked_{{ auth()->id() }}', 'true');
-                },
-                error: function(xhr) {
-                    console.error('Error checking certificate eligibility');
+
+                    return;
                 }
-            });
-        }
+
+                if (response.post_assessment_ready && response.section) {
+                    const promptKey = `postAssessmentPromptSeen_${userId}_${response.section.id}`;
+
+                    if (!localStorage.getItem(promptKey) && !window.location.pathname.includes('/assessment/post/')) {
+                        localStorage.setItem(promptKey, 'true');
+
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'All Lessons Completed',
+                            html: `<div style="padding: 10px 0;">
+                                <p style="font-size: 16px; margin-bottom: 12px;">
+                                    Congratulations, you have completed all lessons for <strong>${response.section.name}</strong>.
+                                </p>
+                                <p style="font-size: 14px; color: #666; margin-bottom: 0;">
+                                    Take the post-assessment now to claim your certificate.
+                                </p>
+                            </div>`,
+                            confirmButtonText: '<i class="ri-file-list-3-line me-2"></i> Take Post-Assessment',
+                            confirmButtonColor: '#696cff',
+                            showCancelButton: true,
+                            cancelButtonText: 'Later',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = response.post_assessment_url;
+                            }
+                        });
+                    }
+                }
+            },
+            error: function() {
+                console.error('Error checking certificate eligibility');
+            }
+        });
     });
     </script>
     @endif

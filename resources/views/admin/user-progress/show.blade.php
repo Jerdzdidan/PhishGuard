@@ -83,7 +83,8 @@ USER PROGRESS DETAIL
                         <div>
                             <h4 class="mb-1">{{ $user->first_name }} {{ $user->last_name }}</h4>
                             <p class="mb-0 text-muted">{{ $user->email }}</p>
-                            <small class="text-muted">Joined {{ $user->created_at->format('M d, Y') }}</small>
+                            <small class="text-muted d-block">Joined {{ $user->created_at->format('M d, Y') }}</small>
+                            <small class="text-muted">Sections: {{ $context['sections_label'] }}</small>
                         </div>
                     </div>
                     <a href="{{ route('admin.user-progress.index') }}" class="btn btn-label-secondary">
@@ -176,6 +177,199 @@ USER PROGRESS DETAIL
                         <i class="ri-time-line ri-3x"></i>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-4 border-warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title mb-0">Pre-Assessment Avg</h6>
+                        <h2 class="mb-0 mt-2 text-warning">
+                            {{ $assessmentStats['avg_pre_score'] !== null ? round($assessmentStats['avg_pre_score'], 1) : 'N/A' }}
+                            @if($assessmentStats['avg_pre_score'] !== null)%@endif
+                        </h2>
+                        <small class="text-muted">{{ $assessmentStats['total_pre'] }} completed</small>
+                    </div>
+                    <div class="align-self-center text-warning">
+                        <i class="ri-clipboard-line ri-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-4 border-success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title mb-0">Post-Assessment Avg</h6>
+                        <h2 class="mb-0 mt-2 text-success">
+                            {{ $assessmentStats['avg_post_score'] !== null ? round($assessmentStats['avg_post_score'], 1) : 'N/A' }}
+                            @if($assessmentStats['avg_post_score'] !== null)%@endif
+                        </h2>
+                        <small class="text-muted">{{ $assessmentStats['total_post'] }} completed</small>
+                    </div>
+                    <div class="align-self-center text-success">
+                        <i class="ri-award-line ri-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-4 border-primary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title mb-0">Assessment Improvement</h6>
+                        @php
+                            $avgImprovement = $assessmentStats['avg_improvement'];
+                            $improvementColor = $avgImprovement === null ? 'text-muted' : ($avgImprovement >= 0 ? 'text-success' : 'text-danger');
+                        @endphp
+                        <h2 class="mb-0 mt-2 {{ $improvementColor }}">
+                            @if($avgImprovement === null)
+                                N/A
+                            @else
+                                {{ $avgImprovement > 0 ? '+' : '' }}{{ round($avgImprovement, 1) }}%
+                            @endif
+                        </h2>
+                        <small class="text-muted">Average post minus pre</small>
+                    </div>
+                    <div class="align-self-center text-primary">
+                        <i class="ri-line-chart-line ri-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-4 border-info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title mb-0">Sections With Both</h6>
+                        @php
+                            $sectionsWithBothAssessments = $assessmentComparisons->filter(fn($comparison) => $comparison['pre_attempt'] && $comparison['post_attempt'])->count();
+                        @endphp
+                        <h2 class="mb-0 mt-2 text-info">{{ $sectionsWithBothAssessments }}/{{ $context['section_count'] }}</h2>
+                        <small class="text-muted">Pre and post completed</small>
+                    </div>
+                    <div class="align-self-center text-info">
+                        <i class="ri-stack-line ri-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Assessment Results by Section</h5>
+            </div>
+            <div class="card-body" style="max-height: 560px; overflow-y: auto;">
+                @forelse($assessmentComparisons as $comparison)
+                    <div class="card attempt-card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h6 class="mb-1">{{ $comparison['section_name'] }}</h6>
+                                    <small class="text-muted">Latest completed assessment results</small>
+                                </div>
+                                @if($comparison['improvement'] !== null)
+                                    <span class="badge {{ $comparison['improvement'] >= 0 ? 'bg-success' : 'bg-danger' }}">
+                                        {{ $comparison['improvement'] > 0 ? '+' : '' }}{{ round($comparison['improvement'], 2) }}%
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="border rounded p-3 h-100">
+                                        <small class="text-muted d-block mb-1">Pre-Assessment</small>
+                                        @if($comparison['pre_attempt'])
+                                            <div class="fw-semibold text-warning">{{ round($comparison['pre_attempt']->percentage, 2) }}%</div>
+                                            <small class="text-muted">{{ $comparison['pre_attempt']->completed_at->format('M d, Y • h:i A') }}</small>
+                                        @else
+                                            <span class="text-muted">Not completed</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="border rounded p-3 h-100">
+                                        <small class="text-muted d-block mb-1">Post-Assessment</small>
+                                        @if($comparison['post_attempt'])
+                                            <div class="fw-semibold text-success">{{ round($comparison['post_attempt']->percentage, 2) }}%</div>
+                                            <small class="text-muted">{{ $comparison['post_attempt']->completed_at->format('M d, Y • h:i A') }}</small>
+                                        @else
+                                            <span class="text-muted">Not completed</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5">
+                        <i class="ri-clipboard-line ri-3x text-muted mb-3"></i>
+                        <p class="text-muted">No assessment results yet</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Assessment Attempts</h5>
+            </div>
+            <div class="card-body" style="max-height: 560px; overflow-y: auto;">
+                @forelse($assessmentAttempts->take(10) as $attempt)
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="card attempt-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h6 class="mb-1">{{ $attempt->section->name }}</h6>
+                                            <small class="text-muted">
+                                                {{ ucfirst($attempt->type) }}-Assessment • {{ $attempt->completed_at->format('M d, Y • h:i A') }}
+                                            </small>
+                                        </div>
+                                        <span class="badge {{ $attempt->type === 'pre' ? 'bg-label-warning' : 'bg-label-success' }}">
+                                            {{ round($attempt->percentage, 2) }}%
+                                        </span>
+                                    </div>
+                                    <div class="d-flex gap-3 mt-2 flex-wrap">
+                                        <small class="text-muted">
+                                            <i class="ri-checkbox-circle-line me-1"></i>
+                                            {{ $attempt->score }}/{{ $attempt->total_questions }} correct
+                                        </small>
+                                        <small class="text-muted">
+                                            <i class="ri-time-line me-1"></i>
+                                            {{ gmdate('i:s', $attempt->completion_time) }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5">
+                        <i class="ri-file-chart-line ri-3x text-muted mb-3"></i>
+                        <p class="text-muted">No assessment attempts yet</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>

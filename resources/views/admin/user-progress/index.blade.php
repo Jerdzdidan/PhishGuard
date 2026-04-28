@@ -35,11 +35,15 @@ USER PROGRESS TRACKING
                 <x-table.table id="userProgressTable">
                     {{-- Columns --}}
                     <th>Id</th>
-                    <th>Name</th>
+                    <th>Student</th>
                     <th>Email</th>
+                    <th>Section</th>
                     <th>Lessons Completed</th>
                     <th>Quiz Average</th>
                     <th>Simulation Average</th>
+                    <th>Pre Score</th>
+                    <th>Post Score</th>
+                    <th>Improvement</th>
                     <th>Joined</th>
                     <th>Actions</th>
                 </x-table.table>
@@ -62,13 +66,10 @@ $(document).ready(function() {
         columns: [
             { data: 'id', name: 'id', visible: false },
             { 
-                data: null,
-                name: 'name',
+                data: 'student_name',
+                name: 'student_name',
                 orderable: true,
-                searchable: true,
-                render: function(data, type, row) {
-                    return `${row.first_name} ${row.last_name}`;
-                }
+                searchable: true
             },
             { 
                 data: 'email', 
@@ -76,10 +77,19 @@ $(document).ready(function() {
                 orderable: true,
                 searchable: true
             },
+            {
+                data: 'section_name',
+                name: 'section_name',
+                orderable: true,
+                searchable: true,
+                render: function(data) {
+                    return data || '<span class="text-muted">No section assigned</span>';
+                }
+            },
             { 
                 data: null,
                 name: 'lessons_completed',
-                orderable: true,
+                orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
                     const completed = row.lessons_completed;
@@ -136,6 +146,54 @@ $(document).ready(function() {
                     return `<span class="badge ${badgeClass}">${data}</span>`;
                 }
             },
+            {
+                data: 'pre_assessment_score',
+                name: 'pre_assessment_score',
+                orderable: false,
+                searchable: false,
+                render: function(data) {
+                    if (data === 'N/A') return '<span class="text-muted">N/A</span>';
+
+                    const score = parseFloat(data);
+                    let badgeClass = 'bg-danger';
+                    if (score >= 80) badgeClass = 'bg-success';
+                    else if (score >= 70) badgeClass = 'bg-warning';
+                    else if (score >= 60) badgeClass = 'bg-info';
+
+                    return `<span class="badge ${badgeClass}">${data}</span>`;
+                }
+            },
+            {
+                data: 'post_assessment_score',
+                name: 'post_assessment_score',
+                orderable: false,
+                searchable: false,
+                render: function(data) {
+                    if (data === 'N/A') return '<span class="text-muted">N/A</span>';
+
+                    const score = parseFloat(data);
+                    let badgeClass = 'bg-danger';
+                    if (score >= 80) badgeClass = 'bg-success';
+                    else if (score >= 70) badgeClass = 'bg-warning';
+                    else if (score >= 60) badgeClass = 'bg-info';
+
+                    return `<span class="badge ${badgeClass}">${data}</span>`;
+                }
+            },
+            {
+                data: 'assessment_improvement',
+                name: 'assessment_improvement',
+                orderable: false,
+                searchable: false,
+                render: function(data) {
+                    if (data === 'N/A') return '<span class="text-muted">N/A</span>';
+
+                    const score = parseFloat(data);
+                    const badgeClass = score >= 0 ? 'bg-success' : 'bg-danger';
+
+                    return `<span class="badge ${badgeClass}">${data}</span>`;
+                }
+            },
             { 
                 data: 'created_at',
                 name: 'created_at',
@@ -156,7 +214,7 @@ $(document).ready(function() {
                 searchable: false
             }
         ],
-        order: [[7, 'desc']], // Order by created_at (joined date) descending
+        order: [[10, 'desc']],
         pageLength: 10,
         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
         language: {

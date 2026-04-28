@@ -4,6 +4,8 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Mail\CertificateMail;
+use App\Models\Certificate;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -17,21 +19,54 @@ class CertificateController extends Controller
     public function checkEligibility()
     {
         $user = Auth::user();
-        
-        if ($user->isEligibleForCertificate()) {
-            $certificate = $user->issueCertificate();
-            
+
+        if ($user->certificate) {
+            return response()->json([
+                'eligible' => false,
+                'has_certificate' => true,
+                'certificate' => $user->certificate,
+                'post_assessment_ready' => false,
+            ]);
+        }
+
+        if ($section = $user->getCertificateEligibleSection()) {
+            $certificate = $user->issueCertificate($section->id);
+            $emailResult = $certificate
+                ? $this->sendCertificateToUser($user, $certificate)
+                : ['success' => false, 'message' => 'Certificate could not be created.'];
+
             return response()->json([
                 'eligible' => true,
+                'just_earned_certificate' => true,
+                'has_certificate' => false,
                 'certificate' => $certificate,
-                'message' => 'Congratulations! You have earned your certificate!'
+                'email_sent' => $emailResult['success'],
+                'email_message' => $emailResult['message'],
+                'message' => 'Congratulations! You have earned your certificate!',
+            ]);
+        }
+
+        if ($section = $user->getPendingPostAssessmentSection()) {
+            return response()->json([
+                'eligible' => false,
+                'has_certificate' => false,
+                'post_assessment_ready' => true,
+                'section' => [
+                    'id' => $section->id,
+                    'name' => $section->name,
+                    'teacher' => $section->teacher
+                        ? trim($section->teacher->first_name . ' ' . $section->teacher->last_name)
+                        : null,
+                ],
+                'post_assessment_url' => route('assessment.post', \Illuminate\Support\Facades\Crypt::encryptString($section->id)),
             ]);
         }
 
         return response()->json([
             'eligible' => false,
-            'has_certificate' => $user->certificate ? true : false,
-            'certificate' => $user->certificate
+            'has_certificate' => false,
+            'certificate' => null,
+            'post_assessment_ready' => false,
         ]);
     }
 
@@ -41,7 +76,7 @@ class CertificateController extends Controller
     public function view()
     {
         $user = Auth::user();
-        $certificate = $user->certificate;
+        $certificate = $this->ensureCertificate($user);
 
         if (!$certificate) {
             return redirect()->route('user.home')
@@ -57,7 +92,7 @@ class CertificateController extends Controller
     public function download()
     {
         $user = Auth::user();
-        $certificate = $user->certificate;
+        $certificate = $this->ensureCertificate($user);
 
         if (!$certificate) {
             return redirect()->route('user.home')
@@ -74,78 +109,21 @@ class CertificateController extends Controller
     public function generate()
     {
         $user = Auth::user();
-        $certificate = $user->certificate;
+        $certificate = $this->ensureCertificate($user);
 
         if (!$certificate) {
             return redirect()->route('user.home')
                 ->with('error', 'You have not earned a certificate yet.');
         }
 
-        // Prepare data
-        $userName = $user->first_name . ' ' . $user->last_name;
-        $certNumber = $certificate->certificate_number;
-        $issueDate = $certificate->issued_at->format('F d, Y');
-        $lessonsCompleted = $certificate->total_lessons_completed;
-        $avgQuizScore = number_format($certificate->average_quiz_score, 2);
-        $avgSimScore = number_format($certificate->average_simulation_score, 2);
-        
-        // Paths
-        $templatePath = public_path('img/certificate-template.png');
-        $outputPath = storage_path('app/certificates/' . $certNumber . '.pdf');
-        $scriptPath = base_path('generate_certificate.py');
-        
-        // Create certificates directory if it doesn't exist
-        if (!file_exists(storage_path('app/certificates'))) {
-            mkdir(storage_path('app/certificates'), 0755, true);
-        }
-
-        // Check if template exists, if not use the uploaded image
-        if (!file_exists($templatePath)) {
-            // Try to find the uploaded template
-            $uploadedTemplate = public_path('img/1.png');
-            if (file_exists($uploadedTemplate)) {
-                $templatePath = $uploadedTemplate;
-            } else {
-                return redirect()->back()->with('error', 'Certificate template not found. Please contact administrator.');
-            }
-        }
-
-        // Install reportlab if needed
-        exec('pip list | grep reportlab', $checkOutput);
-        if (empty($checkOutput)) {
-            exec('pip install reportlab Pillow --break-system-packages 2>&1', $installOutput);
-        }
-
-        // Generate PDF using Python script
-        $command = sprintf(
-            'python3 %s %s %s %s %s %s %s %s %s',
-            escapeshellarg($scriptPath),
-            escapeshellarg($outputPath),
-            escapeshellarg($userName),
-            escapeshellarg($certNumber),
-            escapeshellarg($issueDate),
-            escapeshellarg($lessonsCompleted),
-            escapeshellarg($avgQuizScore),
-            escapeshellarg($avgSimScore),
-            escapeshellarg($templatePath)
-        );
-
-        exec($command . ' 2>&1', $output, $return_var);
-
-        if ($return_var !== 0 || !file_exists($outputPath)) {
-            Log::error('Certificate generation failed', [
-                'command' => $command,
-                'output' => $output,
-                'return_var' => $return_var,
-                'template_path' => $templatePath,
-                'script_path' => $scriptPath
-            ]);
-            
-            return redirect()->back()->with('error', 'Failed to generate certificate PDF. Error: ' . implode(' ', $output));
+        try {
+            $outputPath = $this->generateCertificatePdf($user, $certificate);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
 
         // Download the PDF
-        return response()->download($outputPath, $certNumber . '.pdf', [
+        return response()->download($outputPath, $certificate->certificate_number . '.pdf', [
             'Content-Type' => 'application/pdf',
         ])->deleteFileAfterSend(true);
     }
@@ -156,7 +134,7 @@ class CertificateController extends Controller
     public function sendEmail()
     {
         $user = Auth::user();
-        $certificate = $user->certificate;
+        $certificate = $this->ensureCertificate($user);
 
         if (!$certificate) {
             return response()->json([
@@ -165,100 +143,117 @@ class CertificateController extends Controller
             ], 400);
         }
 
-        // Prepare data
-        $userName = $user->first_name . ' ' . $user->last_name;
+        $emailResult = $this->sendCertificateToUser($user, $certificate);
+
+        if (!$emailResult['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $emailResult['message']
+            ], 500);
+        }
+
+        return response()->json($emailResult);
+    }
+
+    private function ensureCertificate(User $user): ?Certificate
+    {
+        if ($user->certificate) {
+            return $user->certificate;
+        }
+
+        $section = $user->getCertificateEligibleSection();
+        if (!$section) {
+            return null;
+        }
+
+        $certificate = $user->issueCertificate($section->id);
+        if ($certificate) {
+            session()->flash('certificate_earned', true);
+            $this->sendCertificateToUser($user, $certificate);
+        }
+
+        return $certificate;
+    }
+
+    private function sendCertificateToUser(User $user, Certificate $certificate): array
+    {
+        try {
+            $outputPath = $this->generateCertificatePdf($user, $certificate, '_email');
+            Mail::to($user->email)->send(new CertificateMail($user, $certificate, $outputPath));
+
+            if (file_exists($outputPath)) {
+                unlink($outputPath);
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Certificate has been sent to ' . $user->email,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Failed to send certificate email', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+                'certificate_id' => $certificate->id,
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Certificate was created, but the email could not be sent automatically.',
+            ];
+        }
+    }
+
+    private function generateCertificatePdf(User $user, Certificate $certificate, string $suffix = ''): string
+    {
         $certNumber = $certificate->certificate_number;
-        $issueDate = $certificate->issued_at->format('F d, Y');
-        $lessonsCompleted = $certificate->total_lessons_completed;
-        $avgQuizScore = number_format($certificate->average_quiz_score, 2);
-        $avgSimScore = number_format($certificate->average_simulation_score, 2);
-        
-        // Paths
+        $outputPath = storage_path('app/certificates/' . $certNumber . $suffix . '.pdf');
         $templatePath = public_path('img/certificate-template.png');
-        $outputPath = storage_path('app/certificates/' . $certNumber . '_email.pdf');
         $scriptPath = base_path('generate_certificate.py');
-        
-        // Create certificates directory if it doesn't exist
+
         if (!file_exists(storage_path('app/certificates'))) {
             mkdir(storage_path('app/certificates'), 0755, true);
         }
 
-        // Check if template exists
         if (!file_exists($templatePath)) {
             $uploadedTemplate = public_path('img/1.png');
             if (file_exists($uploadedTemplate)) {
                 $templatePath = $uploadedTemplate;
             } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Certificate template not found. Please contact administrator.'
-                ], 500);
+                throw new \RuntimeException('Certificate template not found. Please contact administrator.');
             }
         }
 
-        // Install reportlab if needed
         exec('pip list | grep reportlab', $checkOutput);
         if (empty($checkOutput)) {
             exec('pip install reportlab Pillow --break-system-packages 2>&1', $installOutput);
         }
 
-        // Generate PDF using Python script
         $command = sprintf(
             'python3 %s %s %s %s %s %s %s %s %s',
             escapeshellarg($scriptPath),
             escapeshellarg($outputPath),
-            escapeshellarg($userName),
+            escapeshellarg(trim($user->first_name . ' ' . $user->last_name)),
             escapeshellarg($certNumber),
-            escapeshellarg($issueDate),
-            escapeshellarg($lessonsCompleted),
-            escapeshellarg($avgQuizScore),
-            escapeshellarg($avgSimScore),
+            escapeshellarg($certificate->issued_at->format('F d, Y')),
+            escapeshellarg($certificate->total_lessons_completed),
+            escapeshellarg(number_format($certificate->average_quiz_score ?? 0, 2)),
+            escapeshellarg(number_format($certificate->average_simulation_score ?? 0, 2)),
             escapeshellarg($templatePath)
         );
 
-        exec($command . ' 2>&1', $output, $return_var);
+        exec($command . ' 2>&1', $output, $returnVar);
 
-        if ($return_var !== 0 || !file_exists($outputPath)) {
-            Log::error('Certificate generation failed for email', [
+        if ($returnVar !== 0 || !file_exists($outputPath)) {
+            Log::error('Certificate generation failed', [
                 'command' => $command,
                 'output' => $output,
-                'return_var' => $return_var,
+                'return_var' => $returnVar,
+                'certificate_id' => $certificate->id,
             ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate certificate PDF.'
-            ], 500);
+
+            throw new \RuntimeException('Failed to generate certificate PDF.');
         }
 
-        try {
-            // Send email with certificate attached
-            Mail::to($user->email)->send(new CertificateMail($user, $certificate, $outputPath));
-
-            // Clean up the PDF after sending
-            if (file_exists($outputPath)) {
-                unlink($outputPath);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Certificate has been sent to ' . $user->email
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to send certificate email', [
-                'error' => $e->getMessage(),
-                'user_id' => $user->id,
-            ]);
-
-            // Clean up the PDF
-            if (file_exists($outputPath)) {
-                unlink($outputPath);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send email. Please try again later.'
-            ], 500);
-        }
+        return $outputPath;
     }
 }

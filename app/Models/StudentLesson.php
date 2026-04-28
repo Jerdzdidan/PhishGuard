@@ -70,17 +70,40 @@ class StudentLesson extends Model
     }
 
     /**
+     * Get the lesson completion percentage based on required steps.
+     */
+    public function completionPercentage(): int
+    {
+        $lesson = $this->lesson;
+        $requirements = 1; // Lesson content is always required
+        $completed = $this->content_viewed ? 1 : 0;
+
+        if ($lesson->quiz && $lesson->quiz->is_active) {
+            $requirements++;
+            if ($this->quiz_passed) {
+                $completed++;
+            }
+        }
+
+        if ($lesson->has_simulation) {
+            $requirements++;
+            if ($this->simulations_completed) {
+                $completed++;
+            }
+        }
+
+        return $requirements > 0
+            ? (int) round(($completed / $requirements) * 100)
+            : 0;
+    }
+
+    /**
      * Mark content as viewed
      */
     public function markContentViewed(): void
     {
         $this->content_viewed = true;
-        
-        // Check if lesson is now completed
-        if ($this->isCompleted() && !$this->completed_at) {
-            $this->completed_at = now();
-        }
-        
+        $this->syncCompletionTimestamp();
         $this->save();
     }
 
@@ -99,29 +122,28 @@ class StudentLesson extends Model
             $this->quiz_passed = true;
         }
 
-        // Check if lesson is now completed
-        if ($this->isCompleted() && !$this->completed_at) {
-            $this->completed_at = now();
-        }
-
+        $this->syncCompletionTimestamp();
         $this->save();
     }
 
     /**
-     * Update simulation results
+     * Update simulation progress for the lesson.
      */
-    public function updateSimulationResults(bool $passed): void
+    public function updateSimulationProgress(int $completedSimulations, int $totalSimulations): void
     {
-        // Mark simulations as completed if they passed
-        if ($passed && !$this->simulations_completed) {
-            $this->simulations_completed = true;
-        }
+        $this->simulation_progress = max(0, $completedSimulations);
+        $this->simulations_completed = $totalSimulations > 0
+            ? $completedSimulations >= $totalSimulations
+            : false;
 
-        // Check if lesson is now completed
+        $this->syncCompletionTimestamp();
+        $this->save();
+    }
+
+    private function syncCompletionTimestamp(): void
+    {
         if ($this->isCompleted() && !$this->completed_at) {
             $this->completed_at = now();
         }
-
-        $this->save();
     }
 }

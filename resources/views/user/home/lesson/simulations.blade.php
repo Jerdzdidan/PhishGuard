@@ -80,9 +80,11 @@ SIMULATIONS - {{ $lesson->title }}
 
                 @foreach($simulations as $index => $sim)
                     @php
-                        $isCompleted = isset($attempts[$sim['id']]);
-                        $isLocked = $index > 0 && !isset($attempts[$simulations[$index - 1]['id']]);
                         $attempt = $attempts[$sim['id']] ?? null;
+                        $isPassed = in_array($sim['id'], $passedSimulationIds->all(), true);
+                        $hasAttempt = $attempt !== null;
+                        $isCompleted = $isPassed;
+                        $isLocked = $index > 0 && !in_array($simulations[$index - 1]['id'], $passedSimulationIds->all(), true);
                     @endphp
 
                     <div class="card simulation-card mb-3 {{ $isCompleted ? 'completed' : '' }} {{ $isLocked ? 'locked' : '' }}">
@@ -90,7 +92,7 @@ SIMULATIONS - {{ $lesson->title }}
                             <div class="lock-overlay">
                                 <div class="text-center">
                                     <i class="ri-lock-line" style="font-size: 2rem; color: #696cff;"></i>
-                                    <p class="mb-0 mt-2">Complete previous simulation to unlock</p>
+                                    <p class="mb-0 mt-2">Pass the previous simulation to unlock</p>
                                 </div>
                             </div>
                         @endif
@@ -102,7 +104,11 @@ SIMULATIONS - {{ $lesson->title }}
                                         <h6 class="mb-0">Simulation {{ $index + 1 }}: {{ $sim['title'] }}</h6>
                                         @if($isCompleted)
                                             <span class="badge bg-success">
-                                                <i class="ri-check-line me-1"></i> Completed
+                                                <i class="ri-check-line me-1"></i> Passed
+                                            </span>
+                                        @elseif($hasAttempt)
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="ri-restart-line me-1"></i> Needs Retry
                                             </span>
                                         @elseif($isLocked)
                                             <span class="badge bg-secondary">
@@ -117,7 +123,7 @@ SIMULATIONS - {{ $lesson->title }}
                                     <p class="mb-2 text-muted">{{ $sim['description'] }}</p>
                                     <div class="d-flex gap-3 text-sm">
                                         <span><i class="ri-file-list-line me-1"></i> {{ $sim['total_scenarios'] }} Scenarios</span>
-                                        @if($isCompleted && $attempt)
+                                        @if($hasAttempt && $attempt)
                                             <span><i class="ri-trophy-line me-1 text-warning"></i> Score: {{ $attempt->score }}/{{ $attempt->total_scenarios }}</span>
                                             <span><i class="ri-time-line me-1"></i> {{ gmdate('i:s', $attempt->time_taken) }}</span>
                                         @endif
@@ -127,9 +133,9 @@ SIMULATIONS - {{ $lesson->title }}
                                     @if(!$isLocked)
                                         <a href="{{ route('lessons.simulations.show', ['id' => Crypt::encryptString($lesson->id), 'simId' => $sim['id']]) }}" 
                                            class="btn btn-primary btn-sm">
-                                            <i class="ri-play-line me-1"></i> {{ $isCompleted ? 'Retake' : 'Start' }}
+                                            <i class="ri-play-line me-1"></i> {{ $hasAttempt ? 'Retake' : 'Start' }}
                                         </a>
-                                        @if($isCompleted)
+                                        @if($hasAttempt)
                                             <a href="{{ route('lessons.simulations.results', [
                                                 'id' => Crypt::encryptString($lesson->id), 
                                                 'simId' => $sim['id'],
@@ -143,7 +149,7 @@ SIMULATIONS - {{ $lesson->title }}
                                 </div>
                             </div>
 
-                            @if($isCompleted && $attempt)
+                            @if($hasAttempt && $attempt)
                                 <div class="progress mt-3" style="height: 8px">
                                     <div class="progress-bar {{ $attempt->isPassed() ? 'bg-success' : 'bg-warning' }}" 
                                          role="progressbar" 
@@ -170,50 +176,7 @@ SIMULATIONS - {{ $lesson->title }}
     </div>
 
     <div class="col-lg-4">
-        <div class="accordion stick-top accordion-custom-button mb-4" id="courseContent">
-            <div class="accordion-item active mb-0">
-                <div class="accordion-header" id="headingOne">
-                    <button type="button" class="accordion-button" data-bs-toggle="collapse" data-bs-target="#chapterOne" aria-expanded="true" aria-controls="chapterOne">
-                        <span class="d-flex flex-column">
-                            <span class="h5 mb-0">Lesson Content</span>
-                            <span class="text-body fw-normal">{{ $lesson->time }} min</span>
-                        </span>
-                    </button>
-                </div>
-                <div id="chapterOne" class="accordion-collapse collapse show" data-bs-parent="#courseContent">
-                    <div class="accordion-body py-4">
-                        <div class="mb-4">
-                            <a href="{{ route('lessons.show', Crypt::encryptString($lesson->id)) }}">
-                                <label class="form-check-label ms-4">
-                                    <span class="mb-0 h6">1. Lesson</span>
-                                    <small class="text-body d-block">content</small>
-                                </label>
-                            </a>
-                        </div>
-                        @if ($lesson->quiz && $lesson->quiz->is_active)
-                            <hr>
-                            <div class="mb-4">
-                                <a href="{{ route('lessons.quiz.show', Crypt::encryptString($lesson->id)) }}">
-                                    <label class="form-check-label ms-4">
-                                        <span class="mb-0 h6">2. Quiz</span>
-                                        <small class="text-body d-block">assessment</small>
-                                    </label>
-                                </a>
-                            </div>
-                        @endif
-                        @if ($lesson->has_simulation)
-                            <hr>
-                            <div class="mb-4">
-                                <label class="ms-4">
-                                    <span class="mb-0 h6 text-primary">3. Simulations</span>
-                                    <small class="text-body d-block">interactive practice</small>
-                                </label>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
+        @include('user.home.lesson.partials.sidebar', ['lesson' => $lesson, 'activeStep' => 'simulation'])
 
         <div class="card stick-top">
             <div class="card-body">

@@ -125,6 +125,11 @@ ASSESSMENT RESULTS
         </div>
 
         <div class="text-center mb-4">
+            @if($attempt->type === 'post')
+                <a href="{{ route('certificate.view') }}" class="btn btn-success me-2">
+                    <i class="bx bx-award me-1"></i> Claim Certificate
+                </a>
+            @endif
             <a href="{{ route('home') }}" class="btn btn-primary">
                 <i class="bx bx-home me-1"></i> Back to Home
             </a>

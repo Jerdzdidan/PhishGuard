@@ -35,12 +35,18 @@ class CourseAppController extends Controller
         $preAssessmentCompleted = $user->hasCompletedPreAssessment($activeSection->id);
 
         // Get lessons for this section
-        $lessonIds = $activeSection->lessons()->pluck('lessons.id');
+        $lessonIds = $activeSection->lessons()
+            ->where('lessons.is_active', true)
+            ->pluck('lessons.id');
         $lessons = Lesson::whereIn('id', $lessonIds)
             ->where('is_active', true)
             ->paginate(9);
 
         $total = $lessons->total();
+        $completedLessonsCount = $user->completedLessonsCount($lessonIds);
+        $sectionProgressPercentage = $total > 0
+            ? (int) round(($completedLessonsCount / $total) * 100)
+            : 0;
 
         // Check if all lessons are completed for post-assessment eligibility
         $allLessonsCompleted = $user->hasCompletedAllLessons($activeSection->id);
@@ -52,6 +58,8 @@ class CourseAppController extends Controller
             'enrolledSections',
             'activeSection',
             'preAssessmentCompleted',
+            'completedLessonsCount',
+            'sectionProgressPercentage',
             'allLessonsCompleted',
             'postAssessmentCompleted'
         ));

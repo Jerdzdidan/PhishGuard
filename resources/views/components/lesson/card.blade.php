@@ -57,39 +57,7 @@
             @if($lesson->isUnlocked())
                 @php
                     $progress = $lesson->progress;
-                    $progressPercent = 0;
-                    
-                    if ($progress) {
-                        $requirements = [];
-                        $completed = [];
-                        
-                        // Content is always required
-                        $requirements[] = 'content';
-                        if ($progress->content_viewed) {
-                            $completed[] = 'content';
-                        }
-                        
-                        // Quiz if active
-                        if ($lesson->quiz && $lesson->quiz->is_active) {
-                            $requirements[] = 'quiz';
-                            if ($progress->quiz_passed) {
-                                $completed[] = 'quiz';
-                            }
-                        }
-                        
-                        // Simulations if enabled
-                        if ($lesson->has_simulation) {
-                            $requirements[] = 'simulation';
-                            if ($progress->simulations_completed) {
-                                $completed[] = 'simulation';
-                            }
-                        }
-                        
-                        // Calculate percentage
-                        if (count($requirements) > 0) {
-                            $progressPercent = round((count($completed) / count($requirements)) * 100);
-                        }
-                    }
+                    $progressPercent = $progress ? $progress->completionPercentage() : 0;
                 @endphp
                 <p class="d-flex align-items-center mb-1">
                     {{ $progressPercent }}% Complete

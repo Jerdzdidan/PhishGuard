@@ -488,7 +488,17 @@ class AnalyticsController extends Controller
             }
         }
 
-        return view('admin.analytics.assessment', compact('sections', 'stats', 'studentComparisons', 'sectionId'));
+        $attempts = $attempts
+            ->sortByDesc('completed_at')
+            ->values();
+
+        return view('admin.analytics.assessment', compact(
+            'sections',
+            'stats',
+            'studentComparisons',
+            'sectionId',
+            'attempts'
+        ));
     }
 
     private function getDifficultyLevel($successRate)
