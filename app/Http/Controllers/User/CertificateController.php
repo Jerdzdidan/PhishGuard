@@ -209,6 +209,7 @@ class CertificateController extends Controller
         $outputPath = storage_path('app/certificates/' . $certNumber . $suffix . '.pdf');
         $templatePath = public_path('img/certificate-template.png');
         $scriptPath = base_path('generate_certificate.py');
+        $pythonBinary = $this->resolvePythonBinary();
 
         if (!file_exists(storage_path('app/certificates'))) {
             mkdir(storage_path('app/certificates'), 0755, true);
@@ -223,13 +224,11 @@ class CertificateController extends Controller
             }
         }
 
-        exec('pip list | grep reportlab', $checkOutput);
-        if (empty($checkOutput)) {
-            exec('pip install reportlab Pillow --break-system-packages 2>&1', $installOutput);
-        }
+        $this->ensurePythonDependencies($pythonBinary);
 
         $command = sprintf(
-            'python3 %s %s %s %s %s %s %s %s %s',
+            '%s %s %s %s %s %s %s %s %s %s',
+            escapeshellarg($pythonBinary),
             escapeshellarg($scriptPath),
             escapeshellarg($outputPath),
             escapeshellarg(trim($user->first_name . ' ' . $user->last_name)),
@@ -255,5 +254,50 @@ class CertificateController extends Controller
         }
 
         return $outputPath;
+    }
+
+    private function resolvePythonBinary(): string
+    {
+        $candidates = array_filter([
+            env('CERTIFICATE_PYTHON_BIN'),
+            PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3',
+            PHP_OS_FAMILY === 'Windows' ? 'python3' : 'python',
+        ]);
+
+        foreach ($candidates as $candidate) {
+            exec(sprintf('%s --version 2>&1', escapeshellarg($candidate)), $output, $returnVar);
+
+            if ($returnVar === 0) {
+                return $candidate;
+            }
+        }
+
+        throw new \RuntimeException('Python runtime not found. Please install Python or set CERTIFICATE_PYTHON_BIN in your .env file.');
+    }
+
+    private function ensurePythonDependencies(string $pythonBinary): void
+    {
+        exec(
+            sprintf(
+                '%s -c %s 2>&1',
+                escapeshellarg($pythonBinary),
+                escapeshellarg('import reportlab; from PIL import Image')
+            ),
+            $output,
+            $returnVar
+        );
+
+        if ($returnVar === 0) {
+            return;
+        }
+
+        Log::error('Certificate generator dependencies are missing', [
+            'python_binary' => $pythonBinary,
+            'output' => $output,
+        ]);
+
+        throw new \RuntimeException(
+            'Certificate generator dependencies are missing. Install reportlab and Pillow for the configured Python runtime.'
+        );
     }
 }
