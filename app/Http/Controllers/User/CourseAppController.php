@@ -52,6 +52,9 @@ class CourseAppController extends Controller
         $allLessonsCompleted = $user->hasCompletedAllLessons($activeSection->id);
         $postAssessmentCompleted = $user->hasCompletedPostAssessment($activeSection->id);
 
+        // Load the user's certificate if they have one
+        $certificate = $user->certificate;
+
         return view('user.home.index', compact(
             'lessons',
             'total',
@@ -61,7 +64,8 @@ class CourseAppController extends Controller
             'completedLessonsCount',
             'sectionProgressPercentage',
             'allLessonsCompleted',
-            'postAssessmentCompleted'
+            'postAssessmentCompleted',
+            'certificate'
         ));
     }
 }

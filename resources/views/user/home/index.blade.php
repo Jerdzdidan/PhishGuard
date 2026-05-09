@@ -105,9 +105,19 @@ HOME
         <div class="col-md-4">
           <div class="border rounded p-3 h-100">
             <small class="text-muted d-block mb-1">Certificate Path</small>
-            <strong class="{{ $postAssessmentCompleted ? 'text-success' : 'text-warning' }}">
-              {{ $postAssessmentCompleted ? 'Post-Assessment Completed' : 'Waiting for Post-Assessment' }}
+            @if($certificate)
+            <strong class="text-success">
+              <i class="bx bxs-award me-1"></i>Certificate Earned!
             </strong>
+            @elseif($postAssessmentCompleted)
+            <strong class="text-primary">
+              Post-Assessment Completed
+            </strong>
+            @else
+            <strong class="text-warning">
+              Waiting for Post-Assessment
+            </strong>
+            @endif
           </div>
         </div>
       </div>
@@ -181,14 +191,73 @@ HOME
     </div>
     @endif
 
-    @if($postAssessmentCompleted)
+    @if($certificate)
+    {{-- Certificate Display Section --}}
+    <div class="card mb-4 border-0" style="overflow: visible;">
+      <div class="card-body p-0 p-md-4">
+        {{-- Celebration header --}}
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill" style="background: linear-gradient(135deg, #1E7F5C, #28c76f); color: white;">
+            <i class="bx bxs-award" style="font-size: 1.25rem;"></i>
+            <span class="fw-bold" style="letter-spacing: 1px; font-size: 0.85rem;">CERTIFICATE EARNED</span>
+          </div>
+          <h4 class="mt-3 mb-1">Congratulations, {{ auth()->user()->first_name }}! 🎉</h4>
+          <p class="text-muted mb-0">Your certificate of completion is ready</p>
+        </div>
+
+        {{-- Certificate Render --}}
+        <div style="max-width: 900px; margin: 0 auto;">
+          <x-certificate.preview
+              :userName="trim(auth()->user()->first_name . ' ' . auth()->user()->last_name)"
+              :certificate="$certificate"
+              :compact="true"
+          />
+        </div>
+
+        {{-- Action Buttons --}}
+        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-4" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+          <a href="{{ route('certificate.view') }}" class="btn btn-primary flex-fill">
+            <i class="bx bx-show me-1"></i> View Full Certificate
+          </a>
+          <a href="{{ route('certificate.download') }}" class="btn btn-success flex-fill" target="_blank">
+            <i class="bx bx-download me-1"></i> Download PDF
+          </a>
+          <button type="button" class="btn btn-outline-primary flex-fill" id="dashboardSendEmailBtn">
+            <i class="bx bx-envelope me-1"></i> Send to Email
+          </button>
+        </div>
+
+        {{-- Certificate details summary --}}
+        <div class="row g-3 mt-3" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+          <div class="col-4">
+            <div class="text-center p-2 rounded" style="background: #f0fdf4;">
+              <small class="text-muted d-block">Lessons</small>
+              <strong class="text-success">{{ $certificate->total_lessons_completed }}</strong>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="text-center p-2 rounded" style="background: #f0fdf4;">
+              <small class="text-muted d-block">Quiz Avg</small>
+              <strong class="text-success">{{ number_format($certificate->average_quiz_score, 1) }}%</strong>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="text-center p-2 rounded" style="background: #f0fdf4;">
+              <small class="text-muted d-block">Sim Avg</small>
+              <strong class="text-success">{{ number_format($certificate->average_simulation_score ?? 0, 1) }}%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    @elseif($postAssessmentCompleted)
     <div class="card mb-4 border-primary">
       <div class="card-body text-center py-4">
         <i class="bx bxs-certification" style="font-size: 3rem; color: #696cff;"></i>
         <h4 class="mt-2 mb-1">Assessment Complete!</h4>
         <p class="text-muted mb-3">You have completed both assessments. You may now claim your certificate.</p>
         <a href="{{ route('certificate.view') }}" class="btn btn-primary">
-          <i class="bx bx-award me-1"></i> View Certificate
+          <i class="bx bx-award me-1"></i> Claim Certificate
         </a>
       </div>
     </div>
@@ -199,4 +268,44 @@ HOME
 
 @section('scripts')
 <script src="{{ asset('themes/sneat/assets/js/app-academy-course.js') }}"></script>
+
+@if($certificate)
+<script>
+$(document).ready(function() {
+    $('#dashboardSendEmailBtn').on('click', function() {
+        Swal.fire({
+            title: 'Send Certificate to Email',
+            html: `Your certificate will be sent to <strong>{{ Auth::user()->email }}</strong>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1E7F5C',
+            confirmButtonText: '<i class="bx bx-envelope me-1"></i> Send',
+            cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return $.ajax({
+                    url: "{{ route('certificate.send-email') }}",
+                    method: 'POST',
+                    data: { _token: '{{ csrf_token() }}' },
+                }).then(response => {
+                    return response;
+                }).catch(error => {
+                    Swal.showValidationMessage(error.responseJSON?.message || 'Failed to send email');
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Email Sent!',
+                    text: result.value.message,
+                    confirmButtonColor: '#1E7F5C',
+                });
+            }
+        });
+    });
+});
+</script>
+@endif
 @endsection

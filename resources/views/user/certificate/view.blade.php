@@ -96,7 +96,10 @@ MY CERTIFICATE
     </div>
 
     <div class="certificate-preview">
-        <img src="{{ asset('img/certificate-preview.png') }}" alt="Certificate Preview" class="certificate-image" id="certificatePreview">
+        <x-certificate.preview
+            :userName="trim($user->first_name . ' ' . $user->last_name)"
+            :certificate="$certificate"
+        />
     </div>
 
     <div class="certificate-details">
